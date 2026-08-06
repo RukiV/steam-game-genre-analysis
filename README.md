@@ -91,6 +91,53 @@ source venv/bin/activate && python3 -c "from src.steamdb import load_steamdb_his
 source venv/bin/activate && python3 vader_runner.py
 ```
 
+## Data Skoonmaak
+
+Die pyplyn pas verskeie skoonmaak- en voorverwerkingstegnieke toe oor die verskillende databronne:
+
+### Resensies (`src/clean.py` — `clean_reviews()`)
+
+| Tegniek | Beskrywing |
+|---|---|
+| Deduplikasie | Duplikaat-resensies op `review_id` verwyder |
+| Ontbrekende teks | Leë/NaN `review_text` weggegooi |
+| Minimum lengte | Resensies korter as 10 karakters verwyder (spam) |
+| Karakterverhouding-filter | Slegs resensies waar >50% van karakters alfabeties/spasies is — verwyder nonsens-teks en emoji-spam |
+| Tydstempel-validasie | `timestamp_created` → numeries; ongeldige waardes verwyder; `review_date`, `review_year`, `review_month`, `review_day_of_week` afgelei |
+| Playtime-winsorisering | Uitkenners bo die 99ste persentiel word afgekap (nie verwyder nie) |
+| Ontbrekende speeltyd | NaN playtime → 0 |
+| Tipe-afdwinging | `voted_up`, `steam_purchase`, `written_during_early_access` → bool |
+
+**Teks-skoonmaak (`clean_text()`):** URL's verwyder → spesiale karakters (behalwe `. ' ! ? , ; -`) vervang met spasies → spasies ineenstort.
+
+**Kenmerk-ingenieurswese:** `review_length`, `word_count`, `has_early_access`, `is_steam_purchase`, plus 9 one-hot `genre_{GENRE}`-kolomme uit `GAME_GENRES`.
+
+### NLP (`src/nlp_analysis.py`)
+
+- **VADER-val:** leë/non-str teks kry neutrale verstek (compound=0, neu=1.0)
+- **Sentiment-binning:** `compound` → `negative`/`neutral`/`positive` (drempels ±0.05)
+- **TF-IDF:** Engelse stopwoorde verwyder, **unigrams slegs** (`ngram_range=(1,1)` — WSL-geheuebeperking), `max_features=1000`
+
+### SteamDB (`src/steamdb.py`)
+
+| Tegniek | Beskrywing |
+|---|---|
+| Kumulatiewe-ry-verwydering | Eerste ry >20× die mediaan van die volgende 5 dae = opgehoopte "voor-bytrekking"-data (Overwatch 2: 731×) → verwyder |
+| NaN-dae gefiltreer | `dropna(subset=['positive','negative'])` — slegs dae met beide positiewe én negatiewe data tel |
+| Absolute negatiewe | SteamDB stoor negatiewe as negatief → `abs()` |
+| Maand-aggregasie | Positiewe/negatiewe per maand gesommeer → `positive_pct` |
+| Pre-data-bewaring | Data voor SteamDB se bytrekking bewaar as `pre_total_*` vir korrekte kumulatiewe persentasies |
+
+### SteamCharts (`src/steamcharts.py`)
+
+- Kommas uit getalle verwyder, "Last 30 Days"-ry oorgeslaan, ongeldige waardes gedrop.
+
+### Regressie (`src/regression.py` — `prepare_regression_features()`)
+
+- **Ontbrekende data:** rye met NaN op kern-kenmerke gedrop
+- **Log-transformasie** (`log1p`) op skeefgetrekte kenmerke: `playtime_forever`, `review_length`, `word_count`, `num_games_owned`, `num_reviews`, `votes_up`
+- **StandardScaler** toegepas binne die modelle self
+
 ## Speletjies en Genres
 
 ### 9 Genres

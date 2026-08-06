@@ -9,6 +9,7 @@ streamlit>=1.59.0
 pyarrow<25
 plotly>=6.9.0
 wordcloud>=1.9.0
+networkx>=3.0
 vaderSentiment>=3.3.2
 nltk>=3.10.0
 jupyter>=1.1.0

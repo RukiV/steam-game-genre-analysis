@@ -1,5 +1,4 @@
 import time
-from datetime import datetime
 import pandas as pd
 from src.utils import (
     safe_request, GAMES, GAME_IDS, RAW_DIR, ensure_dirs
@@ -148,45 +147,6 @@ def scrape_all(limit_reviews_per_game=None):
     print(f"\nSaved player counts for {len(player_snapshots)} games")
 
     return df_details, df_reviews, df_players
-
-
-def scrape_content_events(app_id, count=50):
-    url = 'https://api.steampowered.com/ISteamNews/GetNewsForApp/v0001/'
-    data = safe_request(url, {'appid': app_id, 'count': count, 'maxlength': 300, 'format': 'json'})
-    if not data or 'appnews' not in data or 'newsitems' not in data['appnews']:
-        return []
-
-    keywords = ['patch', 'update', 'hotfix', 'dlc', 'expansion', 'release', 'content', 'season']
-    events = []
-    for item in data['appnews']['newsitems'].get('newsitem', []):
-        title = item.get('title', '').lower()
-        contents = item.get('contents', '').lower()
-        if any(k in title or k in contents for k in keywords):
-            events.append({
-                'app_id': app_id,
-                'date': datetime.fromtimestamp(item['date']).strftime('%Y-%m-%d'),
-                'title': item['title'],
-                'event_type': 'news',
-            })
-    return events
-
-
-def scrape_all_content_events():
-    ensure_dirs()
-    all_events = []
-    for app_id in GAME_IDS:
-        name = GAMES[app_id]
-        print(f'News events: {name}...', end=' ', flush=True)
-        events = scrape_content_events(app_id)
-        all_events.extend(events)
-        print(f'{len(events)} events')
-        time.sleep(0.3)
-
-    df = pd.DataFrame(all_events)
-    out_path = f'{RAW_DIR}/content_events.csv'
-    df.to_csv(out_path, index=False)
-    print(f'\nSaved {len(all_events)} events to content_events.csv')
-    return df
 
 
 if __name__ == '__main__':

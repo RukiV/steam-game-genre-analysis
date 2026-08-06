@@ -1,32 +1,32 @@
-# Steam Game Reviews & Popularity Analysis
+# Steam Game Genre Analysis
 
-Data-analise projek vanuit 'n speletjie-ontwikkelaar se perspektief: **Hoe maak 'n mens 'n suksesvolle speletjie op Steam, gebaseer op genre?**
+Data-analise projek vanuit 'n speletjie-ontwikkelaar se perspektief: **Watter genre werk?** — As jy in 'n genre wil instap, watter genre is die gewildste, watse kenmerke dryf sukses, en hoe lyk die kommentaar (resensies) binne elke genre?
 
-Analiseer 33 speletjies oor 9 genres (RPG, Shooter, Hero Shooter, Battle Royale, Action, Strategy, Adventure, Survival, Free to Play) met ~65 000 resensies, 836 inhoudsgebeure, 705 historiese spelerdata-rye, en 2831 SteamDB-maandrye.
+Analiseer 33 speletjies oor **9 genres** (RPG, Shooter, Hero Shooter, Battle Royale, Action, Strategy, Adventure, Survival, Free to Play) met ~65 000 skoon resensies. Genre-vlak fokus met **netwerkgrafieke** wat wys hoe genres verwant is en watter tipe kommentaar hulle gemeenskappe lewer.
 
-> **📦 Data-beleid (GitHub):** Gegenereerde CSVs word **nie** gecommit nie (`data/raw/reviews.csv` ~104 MB en `data/processed/reviews_clean.csv` ~198 MB is te groot vir GitHub). Die notebook is self-contained — dit skraap en herskep alles van nuut af. Sien **Gebruik** hieronder. Klein brondata (`steamdb_chart_*.csv`, `content_events.csv`, `player_history.csv`, `app_details.csv`) word wel gecommit.
+> **🚧 In oorgang:** Die projek word tans verklein — **tydreeks-analises word verwyder** (SteamDB, SteamCharts, inhoudgebeure, seisoenale patrone, verlossingsboë). Die kode-herstrukturering volg; hierdie README beskryf die teikenstruktuur.
+
+> **📦 Data-beleid (GitHub):** Gegenereerde CSVs word **nie** gecommit nie (`data/raw/reviews.csv` ~104 MB en `data/processed/reviews_clean.csv` ~198 MB is te groot vir GitHub). Die notebook is self-contained — dit skraap en herskep alles van nuut af. Sien **Gebruik** hieronder. Klein brondata (`app_details.csv`, `player_counts.csv`) word wel gecommit.
 
 ## Projekstruktuur
 
 ```
 ├── data/
-│   ├── raw/              # Rou API data (reviews, app_details, player_counts, content_events, player_history, steamdb_chart_*.csv)
-│   └── processed/        # Skoongemaakte data met genre + VADER kolomme + steamdb_monthly.csv
+│   ├── raw/              # Rou API data (reviews, app_details, player_counts)
+│   └── processed/        # Skoongemaakte data met genre + VADER kolomme
 ├── src/
-│   ├── scrape.py         # Steam API-skraper (reviews, app details, players, content events)
-│   ├── steamcharts.py    # SteamCharts historiese spelerdata-skraper
-│   ├── steamdb.py        # SteamDB daaglikse resensietellings-laaier + skoonmaak
+│   ├── scrape.py         # Steam API-skraper (reviews, app details, huidige spelers)
 │   ├── clean.py          # Data skoonmaak + genre-kenmerke
-│   ├── eda.py            # Verkennende data analise + statistiese toetse
+│   ├── eda.py            # Genre-rangorde, gewildheid, suksesfaktore, statistiese toetse
 │   ├── nlp_analysis.py   # VADER, TF-IDF (per game en per genre), WordCloud
+│   ├── network.py        # Genre-netwerkgrafieke (verwantskap, kommentaar, woorde)
 │   ├── regression.py     # Lineêre & logistiese regressie met genre-kenmerke
-│   ├── timeseries.py     # Tydreeksanalise, seisoenale patrone, verlossingsboë
 │   └── utils.py          # Konfigurasie: 33 speletjies, 9 genres, GAME_GENRES
 ├── notebooks/
-│   ├── project.ipynb     # 50-sel selfstandige notebook (alle 4 fases)
+│   ├── project.ipynb     # Selfstandige notebook (genre-fokus, geen tydreeks)
 │   └── Fase1_Projek.ipynb # Fase 1 projekdokument (inleiding, probleemstelling, metodologie)
 ├── dashboard/
-│   └── app.py            # Streamlit dashboard (5 tabs, genre + game filters, Afrikaans)
+│   └── app.py            # Streamlit dashboard (Oorsig, NLP & Netwerke, Vergelyk, Voorspellings)
 ├── rescrape_all.py       # Progressiewe herskraper (50 bladsye per speletjie, crash-veilig)
 ├── vader_runner.py       # VADER-herlaai en persisteer na CSV
 ├── run_vader.sh          # Shell-skrip vir VADER-herlaai
@@ -80,10 +80,7 @@ Skraap 50 bladsye per speletjie, stoor progressief, en hardloop outomaties `proc
 ### 4. Skraping (onafhanklik van notebook)
 ```bash
 source venv/bin/activate && python3 -c "from src.scrape import scrape_all; scrape_all()"
-source venv/bin/activate && python3 -c "from src.scrape import scrape_all_content_events; scrape_all_content_events()"
-source venv/bin/activate && python3 src/steamcharts.py
 source venv/bin/activate && python3 -c "from src.clean import process_reviews; process_reviews()"
-source venv/bin/activate && python3 -c "from src.steamdb import load_steamdb_history; load_steamdb_history(force_reprocess=True)"
 ```
 
 ### 5. Slegs VADER-herlaai
@@ -93,7 +90,7 @@ source venv/bin/activate && python3 vader_runner.py
 
 ## Data Skoonmaak
 
-Die pyplyn pas verskeie skoonmaak- en voorverwerkingstegnieke toe oor die verskillende databronne:
+Die pyplyn pas verskeie skoonmaak- en voorverwerkingstegnieke toe op die resensiedata:
 
 ### Resensies (`src/clean.py` — `clean_reviews()`)
 
@@ -117,20 +114,6 @@ Die pyplyn pas verskeie skoonmaak- en voorverwerkingstegnieke toe oor die verski
 - **VADER-val:** leë/non-str teks kry neutrale verstek (compound=0, neu=1.0)
 - **Sentiment-binning:** `compound` → `negative`/`neutral`/`positive` (drempels ±0.05)
 - **TF-IDF:** Engelse stopwoorde verwyder, **unigrams slegs** (`ngram_range=(1,1)` — WSL-geheuebeperking), `max_features=1000`
-
-### SteamDB (`src/steamdb.py`)
-
-| Tegniek | Beskrywing |
-|---|---|
-| Kumulatiewe-ry-verwydering | Eerste ry >20× die mediaan van die volgende 5 dae = opgehoopte "voor-bytrekking"-data (Overwatch 2: 731×) → verwyder |
-| NaN-dae gefiltreer | `dropna(subset=['positive','negative'])` — slegs dae met beide positiewe én negatiewe data tel |
-| Absolute negatiewe | SteamDB stoor negatiewe as negatief → `abs()` |
-| Maand-aggregasie | Positiewe/negatiewe per maand gesommeer → `positive_pct` |
-| Pre-data-bewaring | Data voor SteamDB se bytrekking bewaar as `pre_total_*` vir korrekte kumulatiewe persentasies |
-
-### SteamCharts (`src/steamcharts.py`)
-
-- Kommas uit getalle verwyder, "Last 30 Days"-ry oorgeslaan, ongeldige waardes gedrop.
 
 ### Regressie (`src/regression.py` — `prepare_regression_features()`)
 
@@ -196,10 +179,10 @@ Die pyplyn pas verskeie skoonmaak- en voorverwerkingstegnieke toe oor die verski
 
 - **Python** — pandas 3.0+, numpy 2.5+, matplotlib 3.11+, seaborn 0.13+
 - **NLP** — VADER, TF-IDF (scikit-learn), WordCloud
+- **Netwerkgrafieke** — networkx (genre-verwantskap, kommentaar-ooreenkoms, woordnetwerke)
 - **Regressie** — Scikit-learn (Lineêr, Logisties)
-- **Tydreeks** — Moving averages, seasonal decomposition, redemption arcs
-- **Dashboard** — Streamlit 1.59+ (5 tabs, genre + game filters, Afrikaans UI)
-- **Data** — Steam API (appdetails, appreviews, ISteamNews, player counts), SteamCharts, SteamDB
+- **Dashboard** — Streamlit 1.59+ (4 tabs, genre + game filters, Afrikaans UI)
+- **Data** — Steam API (appreviews, appdetails, huidige spelertellings)
 
 ### WSL-kompatibiliteit
 
@@ -217,27 +200,22 @@ Die dashboard is geoptimaliseer vir WSL2:
 
 1. **Genre bepaal basislyn.** RPG begin teen ~79% positief; Hero Shooter teen ~34%.
 2. **Speeltyd = kritiek.** Mees belêde spelers gee die hardste kritiek (p ≈ 10⁻⁶⁰).
-3. **Verlossingsboë is werklik.** Cyberpunk 2077 en No Man's Sky herstel van ~50% na 90%+.
-4. **Woordkeuse verskil per genre.** Elke genre se gemeenskap het unieke bekommernisse.
-5. **Spelers en sentiment is swak gekorreleer.** Mense speel ten spyte van wat hulle sê.
+3. **Woordkeuse verskil per genre.** Elke genre se gemeenskap het unieke bekommernisse — sigbaar in die genre-netwerke.
 
 Sien `analysis-findings.md` vir volledige uiteensetting.
 
 ### Sleuteluitdagings wat aangespreek is
 
 1. **PyArrow-segfault op WSL2** — `AllocateResizableBuffer` crash in PyArrow 25.0.0 tydens boolean indexing op string-kolomme. Opgelos: pin `pyarrow<25`, stel `pd.options.mode.string_storage = 'python'`.
-2. **SteamDB-kumulatiewe eerste ry** — Overwatch 2 se eerste datapunt was 731× groter as die daaglikse gemiddelde (kumulatief oor 8 maande). Opgelos: `_remove_cumulative_first_row()` in `src/steamdb.py`.
-3. **Resensie-bomaanvalle** — Helldivers 2 se PSN-koppeling-kontroversie het kunsmatige data-skatting veroorsaak. Opgelos: `ratio_std_threshold=5.0` in `_estimate_ratio()`.
-4. **TF-IDF OOM** — Bigramme veroorsaak geheue-oploop op WSL. Opgelos: slegs unigrams, sampel tot 30 000 resensies.
-5. **WordCloud OOM** — Alle resensies saamvoeg is te groot. Opgelos: sampel tot 500 resensies.
+2. **TF-IDF OOM** — Bigramme veroorsaak geheue-oploop op WSL. Opgelos: slegs unigrams, sampel tot 30 000 resensies.
+3. **WordCloud OOM** — Alle resensies saamvoeg is te groot. Opgelos: sampel tot 500 resensies.
 
 ## Lêers
 
-- `notebooks/project.ipynb` — Self-contained notebook (50 selle, al 4 fases)
+- `notebooks/project.ipynb` — Self-contained notebook (genre-fokus)
 - `notebooks/Fase1_Projek.ipynb` — Fase 1 projekdokument (inleiding, probleemstelling, metodologie, bronnelys)
-- `dashboard/app.py` — Streamlit dashboard met 5 tabs + genre/game filters (Afrikaans)
+- `dashboard/app.py` — Streamlit dashboard met 4 tabs + genre/game filters (Afrikaans)
 - `.streamlit/config.toml` — Streamlit-konfigurasie (headless, geen hot-reload)
 - `rescrape_all.py` — Progressiewe herskraper, 50 bladsye per speletjie, crash-veilig
 - `analysis-findings.md` — Volledige bevindings
 - `data/processed/reviews_clean.csv` — 65k skoon resensies met genre + VADER
-- `data/processed/steamdb_monthly.csv` — 2831 maandrye van SteamDB (33 speletjies)

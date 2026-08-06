@@ -1,0 +1,25 @@
+# ── Python ───────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+venv/
+
+# ── Tooling config (not project code) ────────────────────
+.opencode/
+.vscode/
+dashboard/.agents/
+
+# ── Generated data — Option A: never commit generated CSVs
+# Big scraped/generated files (reproducible via notebook/rescrape_all.py):
+data/raw/reviews.csv
+data/raw/weighted_scores.csv
+data/processed/*.csv
+
+# ── Logs & local notes ───────────────────────────────────
+*.log
+*.pyc
+
+# ── OS ───────────────────────────────────────────────────
+.DS_Store
+Thumbs.db

@@ -1,0 +1,119 @@
+# Steam Data Analysis — Agent Guide
+
+## Run commands
+
+```bash
+# Notebook (full analysis — self-contained, can scrape from scratch)
+source venv/bin/activate && cd notebooks && jupyter notebook project.ipynb
+
+# Dashboard
+source venv/bin/activate && streamlit run dashboard/app.py
+
+# Progressive rescrape (50 pages per game, crash-safe, saves per game)
+source venv/bin/activate && python3 rescrape_all.py
+
+# Load SteamDB historical data (after CSVs are in data/raw/)
+source venv/bin/activate && python3 -c "from src.steamdb import load_steamdb_history; load_steamdb_history(force_reprocess=True)"
+
+# Scrape content events (keyword-filtered Steam News API)
+source venv/bin/activate && python3 -c "from src.scrape import scrape_all_content_events; scrape_all_content_events()"
+
+# Re-clean after scraping
+source venv/bin/activate && python3 -c "from src.clean import process_reviews; process_reviews()"
+
+# Re-run VADER and persist to CSV (run after cleaning if dashboard is slow)
+source venv/bin/activate && python3 -c "
+import sys, pandas as pd; sys.path.insert(0,'.');
+from src.nlp_analysis import apply_vader;
+from src.utils import PROCESSED_DIR;
+df = pd.read_csv(f'{PROCESSED_DIR}/reviews_clean.csv');
+df = apply_vader(df);
+df.to_csv(f'{PROCESSED_DIR}/reviews_clean.csv', index=False);
+print('VADER saved')
+"
+
+# Force full re-scrape from scratch (delete cached data)
+rm -f data/raw/reviews.csv data/raw/app_details.csv data/raw/player_counts.csv data/raw/content_events.csv data/processed/reviews_clean.csv data/processed/steamdb_monthly.csv
+```
+
+## Project structure
+
+- `src/` — independent modules (scrape → clean → eda → nlp → regression → timeseries), each exposes a single entry function
+- `dashboard/app.py` — Streamlit with 5 tabs, genre + game filters, Afrikaans UI
+- `notebooks/project.ipynb` — 50 cells, self-contained (scrapes from scratch if data missing)
+- `data/raw/` — `reviews.csv` (~66k rows), `app_details.csv`, `player_counts.csv` (33 games), `player_history.csv` (705 rows), `content_events.csv` (836 events), `steamdb_chart_*.csv` (33 games, daily)
+- `data/processed/reviews_clean.csv` — 65k cleaned reviews + 9 genre one-hot columns + 5 VADER columns
+- `data/processed/steamdb_monthly.csv` — 2831 rows, monthly aggregated from SteamDB CSVs (33 games)
+
+## Key facts
+
+- **33 games** in `src/utils.py` GAMES dict, **9 genres** in GENRES dict
+- **GENRES** maps genre → [app_ids]; **GAME_GENRES** maps app_id → [genre tags]; `games_by_genre(genre)` and `games_in_genres(list)` helpers
+- **VADER columns**: vader_compound, vader_positive, vader_neutral, vader_negative, vader_sentiment_label. Pre-persisted in CSV.
+- **SteamCharts**: columns app_id, game_name, month, avg_players, peak_players; date parsing: `pd.to_datetime('01 ' + df['month'], format='%d %B %Y')`
+- **SteamDB**: columns app_id, game_name, year_month, total_positive, total_negative, total_reviews, positive_pct, days, date; loaded via `src.steamdb.load_steamdb_history()`. Daily CSVs in `data/raw/steamdb_chart_{app_id}.csv`
+- **Scraper** uses `purchase_type=all`, `day_range=9999`, 0.3s delay, dedup via seen_ids, stops after 3 empty pages. `max_pages=50` for rescrape (was 100).
+- **Content events** scraped from ISteamNews API, keyword-filtered for patch/update/dlc/expansion. 836 events saved to `data/raw/content_events.csv`
+- **All paths** use constants from `src.utils`: PROJECT_DIR, RAW_DIR, PROCESSED_DIR, GAMES, GAME_IDS, GENRES, GENRE_IDS
+- **Data span**: ~65k clean reviews across all 33 games (~2k each), July 2025 – July 2026
+- **Skills** installed at `~/.config/opencode/skills/` (global, not project-local)
+- **Notebook self-contained**: Phase 2 cells check for existing data and scrape if missing. Delete `data/raw/*.csv` and `data/processed/*.csv` to force fresh scrape.
+
+## Module gotchas
+
+- `prepare_regression_features()` must NOT include `vader_compound` — it's the target for linear regression. Logistic regression adds it back manually.
+- Feature columns for per-game dummies use `GAMES[app_id]` names (e.g., `Counter-Strike_2`), not `game_{id}`.
+- `redemption_arc_analysis()` expects `game_data.copy()` — assigning new columns on a slice triggers `SettingWithCopyWarning`.
+- `prepare_regression_features()` also adds genre one-hot columns (`genre_{GENRE_KEY}`) from `GAME_GENRES` — only works if `process_reviews()` was run post-utils change.
+- `scrape_content_events()` requires `from datetime import datetime` (added fix).
+- `steamdb_redemption_arcs(app_ids, monthly)` — same output format as `redemption_arc_analysis()`, but uses SteamDB aggregated data. `monthly` param is optional (loads from file if None).
+- `_remove_cumulative_first_row()` in `steamdb.py` — detects cumulative-first-row artifacts (first row > 20× median of next 5) and drops them. Only Overwatch 2 affected (731× ratio).
+- `_estimate_ratio()` now has `ratio_std_threshold=5.0` — skips estimation when nearby ratio values are too volatile, preventing fake artifacts during review bombings (Helldivers 2 PSN).
+- `rescrape_all.py` — progressive save (append per game), crash-safe, 50 pages per game. Calls `process_reviews()` + VADER after scraping.
+
+## Dashboard layout
+
+- **Sidebar**: genre multiselect → game multiselect → date range → min reviews slider
+- **Tab1 (Oorsig)**: overview metrics → per-game table/charts → per-genre table/charts
+- **Tab2 (Spelers & Tyd)**: daily volume, monthly %, seasonal patterns, current players, SteamCharts history, genre trend line (+ content event markers), SteamDB historical positive % chart
+- **Tab3 (NLP)**: VADER distribution, word clouds (sampled ≤500), game TF-IDF, genre TF-IDF
+- **Tab4 (Vergelyk)**: radio toggle between Speletjies/Genres mode, scatter plots + redemption arcs
+- **Tab5 (Voorspellings)**: linear & logistic regression (now includes genre features)
+
+## WSL memory gotchas
+
+- `TfidfVectorizer` — must use `ngram_range=(1,1)` (unigrams only); bigrams cause OOM segfault
+- `WordCloud.generate()` — sample text to ≤500 reviews before joining; concatenating all is OOM
+- Dashboard scatter plots wrapped in try/except; extreme `playtime_forever` pre-filtered
+
+## Module return conventions
+
+- `basic_statistics()` → dict: total_reviews, positive_pct, avg_playtime, num_games, num_languages, date_range
+- `per_game_statistics()` → DataFrame: game, total_reviews, positive, negative, positive_pct, avg_playtime, steam_purchase_pct
+- `per_genre_statistics()` → DataFrame: genre, total_reviews, positive, negative, positive_pct, avg_playtime, avg_word_count, num_games
+- `linear_regression_model()` → dict: r2_score, rmse, feature_importance, intercept, n_train, n_test
+- `logistic_regression_voted_up()` → dict: accuracy, auc_roc, feature_importance, classification_report, n_train, n_test
+- `redemption_arc_analysis()` → dict[game_name] → {monthly_data, early_avg_pct, late_avg_pct, change_pct, improved}
+- `seasonal_patterns()` → dict: by_hour, by_day, by_month (each a DataFrame with total, positive_pct)
+- `genre_monthly_trend(df, genre)` → DataFrame with year_month, total_reviews, positive_pct, date
+- `content_impact_analysis(df, game_name, event_dates)` → DataFrame with before/after sentiment per event
+- `load_steamdb_history()` → DataFrame: app_id, game_name, year_month, total_positive, total_negative, total_reviews, positive_pct, days, date
+- `steamdb_redemption_arcs(app_ids, monthly)` → dict[game_name] → {monthly_data, early_avg_pct, late_avg_pct, change_pct, improved}
+
+## Dashboard crash fixes
+
+- **Memory optimization**: `load_data()` drops `review_text` and `review_text_clean` columns (156 MB saved). Main DataFrame is ~49 MB instead of 206 MB.
+- **Lazy text loading**: `review_text_clean` loaded on-demand via `load_review_texts()` only when Tab3 (NLP) is active. Merged into `filtered_en` via `review_id`.
+- **Interrupted-run cleanup**: `plt.close('all')` + `gc.collect()` at the top of the script (before any widgets) cleans up orphaned matplotlib figures from the previous run when Streamlit interrupts it midway. Prevents OOM during rapid genre/game filter switching.
+- **Cache resource**: `load_data()`, `load_review_texts()`, and `_load_steamdb_daily_cached()` use `@st.cache_resource` instead of `@st.cache_data` to avoid pickle serialization overhead and memory doubling.
+- **PyArrow segfault**: `pd.options.mode.string_storage = 'python'` prevents PyArrow-backed string columns that crash (`AllocateResizableBuffer`) during DataFrame filter and Arrow serialization. Pin `pyarrow<25` to avoid the WSL2 segfault.
+- **Disable hot-reload**: `.streamlit/config.toml` sets `runOnSave = false` to prevent Streamlit's file watcher (running on NTFS via WSL 9p) from triggering false re-runs.
+- **Crash logging**: `faulthandler.enable()` at the top of `app.py` captures C-level segfault traces to stderr for debugging.
+- **Matplotlib backend**: Explicitly set to `'Agg'` before `pyplot` import to prevent it from trying a GUI backend when `DISPLAY=:0` (WSLg) is set.
+- **Every tab** wrapped in outer try/except — if a tab fails, it shows a warning and other tabs still work
+- **Sidebar** handles empty `filtered` (NaT dates → warning instead of crash)
+- **Tab3 WordCloud** uses `len(unique_games) > 0` guard before `st.selectbox`, so no crash when genre filter excludes all English reviews
+- **Tab3 TF-IDF** individual try/except per section, already had sample cap 30k
+- **Tab4 SteamDB redemption arcs** wrapped in try/except
+- **Tab5 each regression** wrapped separately (linear & logistic don't kill each other)
+- **Bar chart colors** fixed: `per_game.sort_values('positive_pct')` used for both color list and sort, instead of mismatched sorts

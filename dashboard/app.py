@@ -16,11 +16,10 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-from src.utils import GAMES, PROCESSED_DIR, GENRES, GENRE_IDS, GAME_GENRES, load_raw
+from src.utils import PROCESSED_DIR, GENRES, GENRE_IDS
 from src.eda import basic_statistics, per_game_statistics, per_genre_statistics
 from src.nlp_analysis import apply_vader, get_tfidf_features, top_tfidf_terms, get_tfidf_by_genre
-from src.timeseries import daily_review_volume, monthly_aggregation, redemption_arc_analysis, load_content_events
-from src.steamdb import load_steamdb_history as load_steamdb_monthly, load_steamdb_daily, steamdb_redemption_arcs, steamdb_seasonal_patterns, steamdb_genre_trend
+from src.network import genre_relationship_network, genre_commentary_network, genre_word_network, draw_network
 from src.regression import linear_regression_model, logistic_regression_voted_up
 
 plt.close('all')
@@ -39,16 +38,10 @@ def load_data():
     reviews_path = f'{PROCESSED_DIR}/reviews_clean.csv'
     details_path = f'{PROCESSED_DIR}/../raw/app_details.csv'
     players_path = f'{PROCESSED_DIR}/../raw/player_counts.csv'
-    history_path = f'{PROCESSED_DIR}/../raw/player_history.csv'
-    events_path = f'{PROCESSED_DIR}/../raw/content_events.csv'
-    steamdb_path = f'{PROCESSED_DIR}/steamdb_monthly.csv'
 
     df_reviews = None
     df_details = None
     df_players = None
-    df_history = None
-    df_events = None
-    df_steamdb = None
 
     if os.path.exists(reviews_path):
         df_reviews = pd.read_csv(reviews_path, parse_dates=['review_date'])
@@ -75,19 +68,8 @@ def load_data():
     if os.path.exists(players_path):
         df_players = pd.read_csv(players_path)
 
-    if os.path.exists(history_path):
-        df_history = pd.read_csv(history_path)
-        df_history['date'] = pd.to_datetime('01 ' + df_history['month'], format='%d %B %Y')
-        df_history = df_history.sort_values(['app_id', 'date'])
-
-    if os.path.exists(events_path):
-        df_events = pd.read_csv(events_path, parse_dates=['date'])
-
-    if os.path.exists(steamdb_path):
-        df_steamdb = pd.read_csv(steamdb_path, parse_dates=['date'])
-
     gc.collect()
-    return df_reviews, df_details, df_players, df_history, df_events, df_steamdb
+    return df_reviews, df_details, df_players
 
 
 @st.cache_resource
@@ -99,15 +81,7 @@ def load_review_texts():
     return texts
 
 
-@st.cache_resource
-def _load_steamdb_daily_cached():
-    return load_steamdb_daily()
-
-
-df, df_details, df_players, df_history, df_events, df_steamdb = load_data()
-gc.collect()
-
-df_steamdb_daily = _load_steamdb_daily_cached()
+df, df_details, df_players = load_data()
 gc.collect()
 
 st.sidebar.markdown('# :video_game: Steam Dashboard')
@@ -171,17 +145,16 @@ st.sidebar.markdown('---')
 st.sidebar.markdown('**Steam Game Analytics** | Data Analise Projek')
 
 st.markdown('# :video_game: Steam Game Reviews & Popularity Analysis')
-st.markdown('Interaktiewe dashboard vir die analise van Steam-speletjie-resensies, sentiment, spelersgetalle en tyd neigings.')
+st.markdown('Interaktiewe dashboard vir die analise van Steam-speletjie-resensies, sentiment, genre-verwantskappe en gewildheid.')
 
 if filtered is None or filtered.empty:
     st.warning('Geen data gelaai nie. Hardloer eers die notebook om data in te samel en skoon te maak.')
     st.info('```bash\ncd notebooks\njupyter notebook project.ipynb\n```')
     st.stop()
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4 = st.tabs([
     ':bar_chart: Oorsig',
-    ':chart_with_upwards_trend: Spelers & Tyd',
-    ':speech_balloon: NLP Analise',
+    ':speech_balloon: NLP & Netwerke',
     ':left_right_arrow: Vergelyk',
     ':crystal_ball: Voorspellings',
 ])
@@ -303,6 +276,29 @@ with tab1:
                     f"**Let wel:** 'n Genre met min speletjies/resensies is minder betroubaar. "
                 )
 
+        st.markdown('### Huidige Spelersgetalle')
+        if df_players is not None and not df_players.empty:
+            players_filtered = df_players[df_players['game_name'].isin(selected_games)]
+            if not players_filtered.empty:
+                col1, col2, col3, col4, col5 = st.columns(5)
+                for i, (_, row) in enumerate(players_filtered.iterrows()):
+                    cols = [col1, col2, col3, col4, col5]
+                    with cols[i % 5]:
+                        st.metric(
+                            row['game_name'],
+                            f"{row['player_count']:,}",
+                            help=f"Huidige aantal spelers op Steam op die oomblik van laaste skraap. Bron: Steam Community API."
+                        )
+                st.caption(
+                    f"**Wat:** Huidige gelyktydige spelers per speletjie (gewildheid). "
+                    f"**Lees:** Hoe hoër die getal, hoe meer gewild is die speletjie nou. "
+                    f"**Bron:** Steam Community API (laaste skraap). "
+                )
+            else:
+                st.info('Geen spelersdata vir die geselekteerde speletjies nie.')
+        else:
+            st.info('Geen spelersdata beskikbaar nie (data/raw/player_counts.csv).')
+
         gc.collect()
     except Exception as e:
         st.warning(f'Oorsig tab kon nie laai nie: {e}')
@@ -310,211 +306,8 @@ with tab1:
 
 with tab2:
     try:
-        st.header('Spelers- en Resensietendense')
-
-        col1, col2 = st.columns(2)
-        with col1:
-            st.subheader('Daaglikse Resensie Volume (SteamDB)')
-            if df_steamdb_daily is not None and not df_steamdb_daily.empty:
-                sd = df_steamdb_daily[df_steamdb_daily['game_name'].isin(selected_games)]
-                if not sd.empty:
-                    daily_chart = sd.groupby('date')['total_reviews'].sum().reset_index()
-                    fig, ax = plt.subplots(figsize=(10, 4))
-                    ax.fill_between(daily_chart['date'], daily_chart['total_reviews'],
-                                    alpha=0.3, color='#9b59b6')
-                    ax.plot(daily_chart['date'], daily_chart['total_reviews'],
-                            color='#8e44ad', linewidth=1)
-                    ax.set_title('Daaglikse Resensies')
-                    ax.set_xlabel('Datum')
-                    ax.set_ylabel('Aantal')
-                    st.pyplot(fig)
-                    plt.close(fig)
-                    st.caption(
-                        f"**Wat:** Daaglikse volume van nuwe resensies volgens SteamDB. "
-                        f"**Lees:** Hoe hoër die lyn, hoe meer resensies daardie dag. "
-                        f"**Bron:** SteamDB daaglikse deltas (slegs dae met volledige data). "
-                    )
-
-        with col2:
-            st.subheader('Maandelikse % Positief (SteamDB)')
-            if df_steamdb is not None and not df_steamdb.empty:
-                steamdb_filtered = df_steamdb[df_steamdb['game_name'].isin(selected_games)]
-                if not steamdb_filtered.empty:
-                    fig, ax = plt.subplots(figsize=(10, 4))
-                    for app_id in steamdb_filtered['app_id'].unique():
-                        g = steamdb_filtered[steamdb_filtered['app_id'] == app_id]
-                        name = g['game_name'].iloc[0]
-                        ax.plot(g['date'], g['positive_pct'], label=name, linewidth=1.5)
-                    ax.set_title('Maandelikse % Positief (SteamDB)')
-                    ax.set_xlabel('Datum')
-                    ax.set_ylabel('% Positief')
-                    ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
-                    ax.grid(True, alpha=0.3)
-                    ax.axhline(50, color='red', linestyle='--', alpha=0.3)
-                    st.pyplot(fig)
-                    plt.close(fig)
-                    st.caption(
-                        f"**Wat:** Maandelikse positiewe persentasie per speletjie. "
-                        f"**Lees:** 'n Lyn bo 50% beteken meer positief as negatief vir daardie maand. "
-                        f"**Bron:** SteamDB daaglikse data, maandeliks saamgevoeg. "
-                        f"**Let wel:** Slegs dae met beide positiewe en negatiewe data ingesluit. "
-                    )
-
-        if df_steamdb is not None and not df_steamdb.empty:
-            steamdb_filtered = df_steamdb[df_steamdb['game_name'].isin(selected_games)]
-            if not steamdb_filtered.empty:
-                st.subheader('Kumulatiewe % Positief (SteamDB)')
-                fig, ax = plt.subplots(figsize=(12, 4))
-                for app_id in steamdb_filtered['app_id'].unique():
-                    g = steamdb_filtered[steamdb_filtered['app_id'] == app_id]
-                    name = g['game_name'].iloc[0]
-                    if 'cumulative_pct' in g.columns:
-                        ax.plot(g['date'], g['cumulative_pct'], label=name, linewidth=1.5)
-                ax.set_xlabel('Datum')
-                ax.set_ylabel('% Positief')
-                ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
-                ax.grid(True, alpha=0.3)
-                ax.axhline(50, color='red', linestyle='--', alpha=0.3)
-                st.pyplot(fig)
-                plt.close(fig)
-                st.caption(
-                    f"**Wat:** Lopende kumulatiewe persentasie sedert SteamDB begin opteken het. "
-                    f"**Lees:** Die lyn toon hoe die algehele positiewe persentasie oor tyd verander. "
-                    f"**Bron:** SteamDB. Berekening: totale positief / (positief + negatief) × 100. "
-                    f"**Let wel:** Speletjies met pre-data (soos Overwatch 2) begin laer as gevolg van data voor SteamDB-dagboek. "
-                )
-
-        st.subheader('Seisoenale Patrone')
-        if df_steamdb_daily is not None and not df_steamdb_daily.empty:
-            seasonal = steamdb_seasonal_patterns(df_steamdb_daily, selected_games)
-            col1, col2 = st.columns(2)
-            with col1:
-                fig, ax = plt.subplots(figsize=(6, 3))
-                day_order = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
-                day_data = seasonal['by_day'].copy()
-                if not day_data.empty:
-                    day_data['day_order'] = pd.Categorical(day_data['day_of_week'], categories=day_order, ordered=True)
-                    day_data = day_data.sort_values('day_order')
-                    ax.bar(day_data['day_of_week'], day_data['total'], color='#e74c3c')
-                    ax.set_title('Per Dag')
-                    ax.tick_params(axis='x', rotation=45)
-                st.pyplot(fig)
-                plt.close(fig)
-                st.caption(
-                    f"**Wat:** Resensievolume per dag van die week (SteamDB). "
-                    f"**Lees:** Weekdae vs naweke — wys of spelers meer aktief is oor naweke. "
-                    f"**Bron:** SteamDB daaglikse data, volle leeftyd. "
-                )
-            with col2:
-                fig, ax = plt.subplots(figsize=(6, 3))
-                month_order = ['January','February','March','April','May','June',
-                               'July','August','September','October','November','December']
-                month_data = seasonal['by_month'].copy()
-                if not month_data.empty:
-                    month_data['month_order'] = pd.Categorical(month_data['month'], categories=month_order, ordered=True)
-                    month_data = month_data.sort_values('month_order')
-                    ax.bar(month_data['month'], month_data['total'], color='#2ecc71')
-                    ax.set_title('Per Maand')
-                    ax.tick_params(axis='x', rotation=45)
-                st.pyplot(fig)
-                plt.close(fig)
-                st.caption(
-                    f"**Wat:** Resensievolume per maand (SteamDB). "
-                    f"**Lees:** Seisoenale neigings — spesiale aanbiedings, vakansies, nuwe vrystellings. "
-                    f"**Bron:** SteamDB daaglikse data, volle leeftyd. "
-                )
-
-        if df_players is not None and not df_players.empty:
-            st.subheader('Huidige Spelersgetalle')
-            col1, col2, col3, col4, col5 = st.columns(5)
-            for i, (_, row) in enumerate(df_players.iterrows()):
-                cols = [col1, col2, col3, col4, col5]
-                with cols[i % 5]:
-                    st.metric(
-                        row['game_name'],
-                        f"{row['player_count']:,}",
-                        help=f"Huidige aantal spelers op Steam op die oomblik van laaste skraap. Bron: Steam Community API."
-                    )
-
-        st.subheader('Genre Resensie Tendense')
-        selected_genre_trend = st.selectbox('Kies genre vir maandelikse tendens:',
-                                             sorted([g.replace('_', ' ') for g in GENRE_IDS]), key='genre_trend')
-        genre_trend_key = selected_genre_trend.replace(' ', '_')
-        if df_steamdb is not None and not df_steamdb.empty:
-            gt = steamdb_genre_trend(genre_trend_key, df_steamdb)
-            if not gt.empty:
-                fig, ax = plt.subplots(figsize=(12, 4))
-                ax.plot(gt['date'], gt['positive_pct'], marker='o', color='#e67e22', linewidth=2)
-                ax.set_title(f'Maandelikse % Positief: {selected_genre_trend}')
-                ax.set_xlabel('Datum')
-                ax.set_ylabel('% Positief')
-                ax.grid(True, alpha=0.3)
-
-                if df_events is not None and not df_events.empty:
-                    genre_ids = GENRES.get(genre_trend_key, [])
-                    for _, row in df_events[df_events['app_id'].isin(genre_ids)].iterrows():
-                        ax.axvline(row['date'], color='red', linestyle='--', alpha=0.3, linewidth=0.8)
-
-                st.pyplot(fig)
-                plt.close(fig)
-                st.caption(
-                    f"**Wat:** Maandelikse positiewe % vir die {selected_genre_trend}-genre (SteamDB). "
-                    f"**Lees:** Rooi stippellyne dui inhoudsgebeurtenisse aan (patches, DLC, updates). "
-                    f"**Bron:** SteamDB maandelikse data. "
-                    f"**Let wel:** Genres oorvleuel — resensies tel vir al die speletjie se genres. "
-                )
-
-        if df_history is not None and not df_history.empty:
-            st.subheader('Spelers oor Tyd (SteamCharts)')
-            col1, col2 = st.columns(2)
-            with col1:
-                fig, ax = plt.subplots(figsize=(12, 5))
-                for app_id in df_history['app_id'].unique():
-                    g = df_history[df_history['app_id'] == app_id]
-                    name = g['game_name'].iloc[0]
-                    if name in selected_games:
-                        ax.plot(g['date'], g['avg_players'], label=name, marker='o', markersize=3, linewidth=1.5)
-                ax.set_title('Maandelikse Gemiddelde Spelers')
-                ax.set_xlabel('Datum')
-                ax.set_ylabel('Gem. Spelers')
-                ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
-                ax.grid(True, alpha=0.3)
-                st.pyplot(fig)
-                plt.close(fig)
-                st.caption(
-                    f"**Wat:** Maandelikse gemiddelde speler tellings (SteamCharts). "
-                    f"**Lees:** 'n Stygende lyn beteken meer spelers oor tyd. "
-                    f"**Bron:** SteamCharts historiese data. "
-                )
-            with col2:
-                fig, ax = plt.subplots(figsize=(12, 5))
-                for app_id in df_history['app_id'].unique():
-                    g = df_history[df_history['app_id'] == app_id]
-                    name = g['game_name'].iloc[0]
-                    if name in selected_games:
-                        ax.plot(g['date'], g['peak_players'], label=name, linestyle='--', marker='s', markersize=3, linewidth=1.2)
-                ax.set_title('Maandelikse Piek Spelers')
-                ax.set_xlabel('Datum')
-                ax.set_ylabel('Piek Spelers')
-                ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
-                ax.grid(True, alpha=0.3)
-                st.pyplot(fig)
-                plt.close(fig)
-                st.caption(
-                    f"**Wat:** Maandelikse piek speler tellings (SteamCharts). "
-                    f"**Lees:** Wys die maksimum gelyktydige spelers per maand. "
-                    f"**Bron:** SteamCharts historiese data. "
-                )
-
-        gc.collect()
-    except Exception as e:
-        st.warning(f'Spelers & Tyd tab kon nie laai nie: {e}')
-        gc.collect()
-
-with tab3:
-    try:
         from wordcloud import WordCloud
-        st.header('NLP Analise')
+        st.header('NLP Analise & Genre Netwerke')
 
         texts_df = load_review_texts()
         if texts_df is not None:
@@ -546,8 +339,8 @@ with tab3:
             with col2:
                 sentiments = filtered_en.groupby('game_name')['vader_compound'].mean().sort_values()
                 fig, ax = plt.subplots(figsize=(8, 4))
-                bars = ax.barh(sentiments.index, sentiments.values,
-                               color=['#e74c3c' if v < 0 else '#2ecc71' for v in sentiments.values])
+                ax.barh(sentiments.index, sentiments.values,
+                        color=['#e74c3c' if v < 0 else '#2ecc71' for v in sentiments.values])
                 ax.set_title('Gemiddelde VADER per Speletjie')
                 ax.set_xlabel('Gem. Compound Score')
                 ax.axvline(0, color='black', linestyle='-', alpha=0.3)
@@ -687,11 +480,74 @@ with tab3:
                 st.warning(f'Kon nie genre TF-IDF laai vir {selected_genre_tfidf} nie: {e}')
 
         gc.collect()
-    except Exception as e:
-        st.warning(f'NLP Analise tab kon nie laai nie: {e}')
-        gc.collect()
 
-with tab4:
+        st.subheader('Genre Netwerke')
+        st.markdown('Drie netwerke wys hoe genres verwant is: gedeelde speletjies, '
+                    'kommentaar-ooreenkoms (TF-IDF) en ko-voorkoms van woorde.')
+
+        G_rel = genre_relationship_network()
+        fig, ax = plt.subplots(figsize=(10, 7))
+        draw_network(G_rel, ax=ax, title='Genre Verwantskap: Gedeelde Speletjies',
+                     draw_edge_labels=True)
+        st.pyplot(fig)
+        plt.close(fig)
+        st.caption(
+            f"**Wat:** Nodus = genre (grootte = aantal speletjies), kantlyn = aantal "
+            f"gedeelde speletjies tussen twee genres. "
+            f"**Lees:** Dikker kantlyne = meer gedeelde speletjies; genres sonder kantlyn "
+            f"deel geen speletjies nie. "
+            f"**Bron:** Genre-indeling in src/utils.py. "
+        )
+
+        try:
+            G_comm = genre_commentary_network(filtered_en)
+            if G_comm.number_of_nodes() > 0:
+                fig, ax = plt.subplots(figsize=(10, 7))
+                draw_network(G_comm, ax=ax, title='Genre Kommentaar: TF-IDF Vokabulêre',
+                             draw_edge_labels=True)
+                st.pyplot(fig)
+                plt.close(fig)
+                st.caption(
+                    f"**Wat:** Nodus = genre (grootte = aantal Engelse resensies), "
+                    f"kantlyn = cosinus-ooreenkoms tussen genre-vokabulêre (TF-IDF-sentroïede). "
+                    f"**Lees:** Sterk kantlyne = genres gebruik dieselfde woorde in resensies. "
+                    f"Slegs die sterkste bande (bo gemiddeld + 0.5·std) word gewys. "
+                    f"**Bron:** Engelse resensieteks, enkelwoord-TF-IDF. "
+                )
+            else:
+                st.info('Nie genoeg Engelse resensies vir die kommentaarnetwerk nie.')
+        except Exception as e:
+            st.warning(f'Kon nie kommentaarnetwerk laai nie: {e}')
+
+        genre_for_wn = st.selectbox('Kies genre vir woordnetwerk:',
+                                    sorted([g.replace('_', ' ') for g in GENRE_IDS]),
+                                    key='genre_wordnet')
+        genre_wn_key = genre_for_wn.replace(' ', '_')
+        try:
+            G_word = genre_word_network(filtered_en, genre_wn_key)
+            if G_word.number_of_nodes() > 0:
+                fig, ax = plt.subplots(figsize=(10, 7))
+                draw_network(G_word, ax=ax, title=f'Woordnetwerk: {genre_for_wn}',
+                             node_color='#9b59b6')
+                st.pyplot(fig)
+                plt.close(fig)
+                st.caption(
+                    f"**Wat:** Nodus = top-woord (grootte = frekwensie), kantlyn = aantal "
+                    f"resensies waarin beide woorde saam voorkom. "
+                    f"**Lees:** Woorde wat dikwels saam gebruik word, vorm clusters — "
+                    f"die genre se 'tipe kommentaar'. "
+                    f"**Bron:** Engelse resensies, steekproef van maks 500. "
+                )
+            else:
+                st.info('Nie genoeg Engelse resensies vir hierdie genre se woordnetwerk nie.')
+        except Exception as e:
+            st.warning(f'Kon nie woordnetwerk laai nie: {e}')
+
+        gc.collect()
+    except Exception as e:
+        st.warning(f'NLP & Netwerke tab kon nie laai nie: {e}')
+        gc.collect()
+with tab3:
     try:
         st.header('Vergelyk')
         compare_mode = st.radio('Vergelyk modus:', ['Speletjies', 'Genres'], horizontal=True)
@@ -792,33 +648,6 @@ with tab4:
                 except Exception as e:
                     st.warning(f'Kon nie resensielengte grafiek laai nie: {e}')
 
-                if len(compare_games) <= 5 and df_steamdb is not None:
-                    st.subheader('Verlossingsboë (SteamDB)')
-                    try:
-                        game_app_ids = {v: k for k, v in GAMES.items()}
-                        compare_app_ids = [game_app_ids[g] for g in compare_games if g in game_app_ids]
-                        arc_results = steamdb_redemption_arcs(app_ids=compare_app_ids, monthly=df_steamdb)
-                        for name, data in arc_results.items():
-                            monthly = data['monthly_data']
-                            fig, ax = plt.subplots(figsize=(10, 3))
-                            ax.plot(monthly['date'], monthly['positive_pct'], marker='o', linewidth=2)
-                            early = data['early_avg_pct']
-                            late = data['late_avg_pct']
-                            ax.set_title(f'{name} — SteamDB Positiewe % (vroeeer: {early}%, laat: {late}%)')
-                            ax.set_ylabel('% Positief')
-                            ax.grid(True, alpha=0.3)
-                            ax.axhline(50, color='red', linestyle='--', alpha=0.3)
-                            st.pyplot(fig)
-                            plt.close(fig)
-                            st.caption(
-                                f"**Wat:** Verlossingsboog — verandering in positiewe % oor tyd vir {name}. "
-                                f"**Lees:** Vroeër = gem. eerste 3 maande, laat = gem. laaste 3 maande. "
-                                f"**Bron:** SteamDB maandelikse data. "
-                                f"**Let wel:** Slegs beskikbaar vir speletjies met SteamDB-data. "
-                            )
-                    except Exception as e:
-                        st.warning(f'Kon nie SteamDB verlossingsboë laai nie: {e}')
-
                 st.subheader('Speeltyd vs Aanbeveling')
                 try:
                     fig, ax = plt.subplots(figsize=(10, 5))
@@ -849,7 +678,7 @@ with tab4:
         st.warning(f'Vergelyk tab kon nie laai nie: {e}')
         gc.collect()
 
-with tab5:
+with tab4:
     try:
         st.header('Voorspellings & Regressie')
         st.markdown('Lineêre regressie en logistiese regressie modelle gebaseer op resensie-kenmerke.')

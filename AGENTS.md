@@ -12,12 +12,6 @@ source venv/bin/activate && streamlit run dashboard/app.py
 # Progressive rescrape (50 pages per game, crash-safe, saves per game)
 source venv/bin/activate && python3 rescrape_all.py
 
-# Load SteamDB historical data (after CSVs are in data/raw/)
-source venv/bin/activate && python3 -c "from src.steamdb import load_steamdb_history; load_steamdb_history(force_reprocess=True)"
-
-# Scrape content events (keyword-filtered Steam News API)
-source venv/bin/activate && python3 -c "from src.scrape import scrape_all_content_events; scrape_all_content_events()"
-
 # Re-clean after scraping
 source venv/bin/activate && python3 -c "from src.clean import process_reviews; process_reviews()"
 
@@ -33,27 +27,24 @@ print('VADER saved')
 "
 
 # Force full re-scrape from scratch (delete cached data)
-rm -f data/raw/reviews.csv data/raw/app_details.csv data/raw/player_counts.csv data/raw/content_events.csv data/processed/reviews_clean.csv data/processed/steamdb_monthly.csv
+rm -f data/raw/reviews.csv data/raw/app_details.csv data/raw/player_counts.csv data/processed/reviews_clean.csv
 ```
 
 ## Project structure
 
-- `src/` — independent modules (scrape → clean → eda → nlp → regression → timeseries), each exposes a single entry function
-- `dashboard/app.py` — Streamlit with 5 tabs, genre + game filters, Afrikaans UI
-- `notebooks/project.ipynb` — 50 cells, self-contained (scrapes from scratch if data missing)
-- `data/raw/` — `reviews.csv` (~66k rows), `app_details.csv`, `player_counts.csv` (33 games), `player_history.csv` (705 rows), `content_events.csv` (836 events), `steamdb_chart_*.csv` (33 games, daily)
+- `src/` — independent modules (scrape → clean → eda → nlp → regression → network), each exposes its entry functions
+- `dashboard/app.py` — Streamlit with 4 tabs, genre + game filters, Afrikaans UI
+- `notebooks/project.ipynb` — self-contained (scrapes from scratch if data missing)
+- `data/raw/` — `reviews.csv` (~66k rows), `app_details.csv`, `player_counts.csv` (33 games)
 - `data/processed/reviews_clean.csv` — 65k cleaned reviews + 9 genre one-hot columns + 5 VADER columns
-- `data/processed/steamdb_monthly.csv` — 2831 rows, monthly aggregated from SteamDB CSVs (33 games)
 
 ## Key facts
 
 - **33 games** in `src/utils.py` GAMES dict, **9 genres** in GENRES dict
 - **GENRES** maps genre → [app_ids]; **GAME_GENRES** maps app_id → [genre tags]; `games_by_genre(genre)` and `games_in_genres(list)` helpers
 - **VADER columns**: vader_compound, vader_positive, vader_neutral, vader_negative, vader_sentiment_label. Pre-persisted in CSV.
-- **SteamCharts**: columns app_id, game_name, month, avg_players, peak_players; date parsing: `pd.to_datetime('01 ' + df['month'], format='%d %B %Y')`
-- **SteamDB**: columns app_id, game_name, year_month, total_positive, total_negative, total_reviews, positive_pct, days, date; loaded via `src.steamdb.load_steamdb_history()`. Daily CSVs in `data/raw/steamdb_chart_{app_id}.csv`
 - **Scraper** uses `purchase_type=all`, `day_range=9999`, 0.3s delay, dedup via seen_ids, stops after 3 empty pages. `max_pages=50` for rescrape (was 100).
-- **Content events** scraped from ISteamNews API, keyword-filtered for patch/update/dlc/expansion. 836 events saved to `data/raw/content_events.csv`
+- **Network graphs** (`src/network.py`): genre_relationship_network (gedeelde speletjies), genre_commentary_network (TF-IDF-sentroïede, cosinus-ooreenkoms), genre_word_network (ko-voorkoms van woorde). Albei teks-netwerke filter na Engelse resensies.
 - **All paths** use constants from `src.utils`: PROJECT_DIR, RAW_DIR, PROCESSED_DIR, GAMES, GAME_IDS, GENRES, GENRE_IDS
 - **Data span**: ~65k clean reviews across all 33 games (~2k each), July 2025 – July 2026
 - **Skills** installed at `~/.config/opencode/skills/` (global, not project-local)
@@ -63,22 +54,19 @@ rm -f data/raw/reviews.csv data/raw/app_details.csv data/raw/player_counts.csv d
 
 - `prepare_regression_features()` must NOT include `vader_compound` — it's the target for linear regression. Logistic regression adds it back manually.
 - Feature columns for per-game dummies use `GAMES[app_id]` names (e.g., `Counter-Strike_2`), not `game_{id}`.
-- `redemption_arc_analysis()` expects `game_data.copy()` — assigning new columns on a slice triggers `SettingWithCopyWarning`.
 - `prepare_regression_features()` also adds genre one-hot columns (`genre_{GENRE_KEY}`) from `GAME_GENRES` — only works if `process_reviews()` was run post-utils change.
-- `scrape_content_events()` requires `from datetime import datetime` (added fix).
-- `steamdb_redemption_arcs(app_ids, monthly)` — same output format as `redemption_arc_analysis()`, but uses SteamDB aggregated data. `monthly` param is optional (loads from file if None).
-- `_remove_cumulative_first_row()` in `steamdb.py` — detects cumulative-first-row artifacts (first row > 20× median of next 5) and drops them. Only Overwatch 2 affected (731× ratio).
-- `_estimate_ratio()` now has `ratio_std_threshold=5.0` — skips estimation when nearby ratio values are too volatile, preventing fake artifacts during review bombings (Helldivers 2 PSN).
 - `rescrape_all.py` — progressive save (append per game), crash-safe, 50 pages per game. Calls `process_reviews()` + VADER after scraping.
+- `genre_commentary_network()` — alle genre-vokabulêre oorvleuel >0.85; gebruik `threshold='auto'` (gem + 0.5·std) om net die sterkste bande te hou.
+- `genre_word_network()` en `genre_commentary_network()` — filter na Engels via `language='english'`; werk net as `language`-kolom bestaan. WSL-veilig: sample 500 (woorde) / 3000 per genre (TF-IDF).
+- `draw_network()` — nodusgrootte kom uit `size`-attribuut, kantlyndikte uit `weight`; beide grafieke stel dit self.
 
 ## Dashboard layout
 
 - **Sidebar**: genre multiselect → game multiselect → date range → min reviews slider
-- **Tab1 (Oorsig)**: overview metrics → per-game table/charts → per-genre table/charts
-- **Tab2 (Spelers & Tyd)**: daily volume, monthly %, seasonal patterns, current players, SteamCharts history, genre trend line (+ content event markers), SteamDB historical positive % chart
-- **Tab3 (NLP)**: VADER distribution, word clouds (sampled ≤500), game TF-IDF, genre TF-IDF
-- **Tab4 (Vergelyk)**: radio toggle between Speletjies/Genres mode, scatter plots + redemption arcs
-- **Tab5 (Voorspellings)**: linear & logistic regression (now includes genre features)
+- **Tab1 (Oorsig)**: overview metrics → per-game table/charts → per-genre table/charts → current player counts
+- **Tab2 (NLP & Netwerke)**: VADER distribution, word clouds (sampled ≤500), game TF-IDF, genre TF-IDF, 3 genre netwerkgrafieke (verwantskap, kommentaar, woorde)
+- **Tab3 (Vergelyk)**: radio toggle between Speletjies/Genres mode, scatter plots
+- **Tab4 (Voorspellings)**: linear & logistic regression (includes genre features)
 
 ## WSL memory gotchas
 
@@ -93,27 +81,25 @@ rm -f data/raw/reviews.csv data/raw/app_details.csv data/raw/player_counts.csv d
 - `per_genre_statistics()` → DataFrame: genre, total_reviews, positive, negative, positive_pct, avg_playtime, avg_word_count, num_games
 - `linear_regression_model()` → dict: r2_score, rmse, feature_importance, intercept, n_train, n_test
 - `logistic_regression_voted_up()` → dict: accuracy, auc_roc, feature_importance, classification_report, n_train, n_test
-- `redemption_arc_analysis()` → dict[game_name] → {monthly_data, early_avg_pct, late_avg_pct, change_pct, improved}
-- `seasonal_patterns()` → dict: by_hour, by_day, by_month (each a DataFrame with total, positive_pct)
-- `genre_monthly_trend(df, genre)` → DataFrame with year_month, total_reviews, positive_pct, date
-- `content_impact_analysis(df, game_name, event_dates)` → DataFrame with before/after sentiment per event
-- `load_steamdb_history()` → DataFrame: app_id, game_name, year_month, total_positive, total_negative, total_reviews, positive_pct, days, date
-- `steamdb_redemption_arcs(app_ids, monthly)` → dict[game_name] → {monthly_data, early_avg_pct, late_avg_pct, change_pct, improved}
+- `genre_relationship_network()` → nx.Graph: nodus = genre (size = aantal speletjies), kantlyn = gedeelde speletjies
+- `genre_commentary_network(df)` → nx.Graph: nodus = genre (size = aantal Engelse resensies), kantlyn = cosinus-ooreenkoms (TF-IDF-sentroïede), net bo auto-drempel
+- `genre_word_network(df, genre)` → nx.Graph: nodus = top-woord (size = frekwensie), kantlyn = ko-voorkoms in resensies
+- `draw_network(G, ax=None, ...)` → matplotlib Axes (spring-uitleg, nodusgrootte = `size`, kantlyndikte = `weight`)
 
 ## Dashboard crash fixes
 
 - **Memory optimization**: `load_data()` drops `review_text` and `review_text_clean` columns (156 MB saved). Main DataFrame is ~49 MB instead of 206 MB.
-- **Lazy text loading**: `review_text_clean` loaded on-demand via `load_review_texts()` only when Tab3 (NLP) is active. Merged into `filtered_en` via `review_id`.
+- **Lazy text loading**: `review_text_clean` loaded on-demand via `load_review_texts()` only when Tab2 (NLP & Netwerke) is active. Merged into `filtered_en` via `review_id`.
 - **Interrupted-run cleanup**: `plt.close('all')` + `gc.collect()` at the top of the script (before any widgets) cleans up orphaned matplotlib figures from the previous run when Streamlit interrupts it midway. Prevents OOM during rapid genre/game filter switching.
-- **Cache resource**: `load_data()`, `load_review_texts()`, and `_load_steamdb_daily_cached()` use `@st.cache_resource` instead of `@st.cache_data` to avoid pickle serialization overhead and memory doubling.
+- **Cache resource**: `load_data()` and `load_review_texts()` use `@st.cache_resource` instead of `@st.cache_data` to avoid pickle serialization overhead and memory doubling.
 - **PyArrow segfault**: `pd.options.mode.string_storage = 'python'` prevents PyArrow-backed string columns that crash (`AllocateResizableBuffer`) during DataFrame filter and Arrow serialization. Pin `pyarrow<25` to avoid the WSL2 segfault.
 - **Disable hot-reload**: `.streamlit/config.toml` sets `runOnSave = false` to prevent Streamlit's file watcher (running on NTFS via WSL 9p) from triggering false re-runs.
 - **Crash logging**: `faulthandler.enable()` at the top of `app.py` captures C-level segfault traces to stderr for debugging.
 - **Matplotlib backend**: Explicitly set to `'Agg'` before `pyplot` import to prevent it from trying a GUI backend when `DISPLAY=:0` (WSLg) is set.
 - **Every tab** wrapped in outer try/except — if a tab fails, it shows a warning and other tabs still work
 - **Sidebar** handles empty `filtered` (NaT dates → warning instead of crash)
-- **Tab3 WordCloud** uses `len(unique_games) > 0` guard before `st.selectbox`, so no crash when genre filter excludes all English reviews
-- **Tab3 TF-IDF** individual try/except per section, already had sample cap 30k
-- **Tab4 SteamDB redemption arcs** wrapped in try/except
-- **Tab5 each regression** wrapped separately (linear & logistic don't kill each other)
+- **Tab2 WordCloud** uses `len(unique_games) > 0` guard before `st.selectbox`, so no crash when genre filter excludes all English reviews
+- **Tab2 TF-IDF** individual try/except per section, already had sample cap 30k
+- **Tab2 network graphs** each wrapped in try/except; netwerke gebruik `filtered_en` (moet `review_text_clean` gemerged hê)
+- **Tab4 each regression** wrapped separately (linear & logistic don't kill each other)
 - **Bar chart colors** fixed: `per_game.sort_values('positive_pct')` used for both color list and sort, instead of mismatched sorts

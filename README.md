@@ -121,6 +121,51 @@ Die pyplyn pas verskeie skoonmaak- en voorverwerkingstegnieke toe op die resensi
 - **Log-transformasie** (`log1p`) op skeefgetrekte kenmerke: `playtime_forever`, `review_length`, `word_count`, `num_games_owned`, `num_reviews`, `votes_up`
 - **StandardScaler** toegepas binne die modelle self
 
+## Kenmerke (kolomme)
+
+### Kern-kenmerke — `data/processed/reviews_clean.csv` (42 kolomme)
+
+**Genre & identifikasie** — die kern van die "watter genre werk"-vraag:
+
+| Kolom | Beskrywing |
+|---|---|
+| `app_id`, `game_name` | Watter speletjie |
+| `genre_{GENRE}` (×9) | Een-hot genre-etikette: RPG, Shooter, Hero_Shooter, Battle_Royale, Action, Strategy, Adventure, Survival, Free_to_Play |
+| `language` | Taalfilter (Engels vir NLP-analises) |
+
+**Speler- & resensiegedrag** — die kenmerke wat sukses dryf:
+
+| Kolom | Beskrywing |
+|---|---|
+| `playtime_forever` | Totale speeltyd (gekap by 99ste persentiel) |
+| `playtime_at_review` | Speeltyd toe die resensie geskryf is |
+| `num_games_owned`, `num_reviews` | Speler-ervaring op Steam |
+| `votes_up`, `votes_funny`, `weighted_vote_score` | Resensie-sigbaarheid/waarde |
+| `steam_purchase`, `received_for_free` | Aankoopkonteks |
+| `written_during_early_access` | Early-access-konteks |
+| `voted_up` | **Die teiken**: positief (1) / negatief (0) |
+
+**Teks & sentiment** — die kommentaar:
+
+| Kolom | Beskrywing |
+|---|---|
+| `review_text`, `review_text_clean` | Rou vs. skoongemaakte teks |
+| `review_length`, `word_count` | Resensielengte (log-getransformeer in regressie) |
+| `vader_compound`, `vader_positive`, `vader_neutral`, `vader_negative`, `vader_sentiment_label` | VADER-sentiment (die teiken vir lineêre regressie) |
+
+**Afgeleide vlaggies:** `has_early_access`, `is_steam_purchase`
+
+### Konteks-kolomme (bewaar, maar nie tydreeks-geanaliseer nie)
+
+`timestamp_created`, `timestamp_updated`, `review_date`, `review_year`, `review_month`, `review_day_of_week` — datums word bewaar vir konteks en datumbereik-oorwegings, maar daar is **geen tydreeks-analises** in hierdie projek nie.
+
+### Ondersteunende data
+
+| Lêer | Kolomme | Rol |
+|---|---|---|
+| `data/raw/app_details.csv` | `app_id`, `name`, `release_date`, `developers`, `publishers`, `genres`, `categories`, `price`, `metacritic_score`, `recommendations` | Speletjie-besonderhede vir genre-rangorde (prys, kritici-telling) |
+| `data/raw/player_counts.csv` | `app_id`, `game_name`, `player_count` | **Huidige** spelertellings (snapshot) vir "wat is die gewildste" |
+
 ## Speletjies en Genres
 
 ### 9 Genres

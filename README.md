@@ -2,7 +2,7 @@
 
 Data-analise projek vanuit 'n speletjie-ontwikkelaar se perspektief: **Watter genre werk?** — As jy in 'n genre wil instap, watter genre is die gewildste, watse kenmerke dryf sukses, en hoe lyk die kommentaar (resensies) binne elke genre?
 
-Analiseer 33 speletjies oor **9 genres** (RPG, Shooter, Hero Shooter, Battle Royale, Action, Strategy, Adventure, Survival, Free to Play) met ~65 000 skoon resensies. Genre-vlak fokus met **netwerkgrafieke** wat wys hoe genres verwant is en watter tipe kommentaar hulle gemeenskappe lewer.
+Analiseer 33 speletjies oor **9 genres** (RPG, Shooter, Hero Shooter, Battle Royale, Action, Strategy, Adventure, Survival, Free to Play) met ~160 000 skoon resensies (Sep 2016 – Jul 2026). Genre-vlak fokus met **netwerkgrafieke** wat wys hoe genres verwant is en watter tipe kommentaar hulle gemeenskappe lewer.
 
 > **🚧 In oorgang:** Die projek word tans verklein — **tydreeks-analises word verwyder** (SteamDB, SteamCharts, inhoudgebeure, seisoenale patrone, verlossingsboë). Die kode-herstrukturering volg; hierdie README beskryf die teikenstruktuur.
 
@@ -259,8 +259,10 @@ Sien `analysis-findings.md` vir volledige uiteensetting.
 
 - `notebooks/project.ipynb` — Self-contained notebook (genre-fokus)
 - `notebooks/Fase1_Projek.ipynb` — Fase 1 projekdokument (inleiding, probleemstelling, metodologie, bronnelys)
+- `notebooks/Fase2_Projek.ipynb` — Fase 2 data-insameling en -verwerking (skraap, skoonmaak, einddatastel; Fase 3-plan)
+- `reports/Fase2_Aanbieding.pptx` — Fase 2-klasaanbieding (12 skyfies, sprekersnotas, grafieke)
 - `dashboard/app.py` — Streamlit dashboard met 4 tabs + genre/game filters (Afrikaans)
 - `.streamlit/config.toml` — Streamlit-konfigurasie (headless, geen hot-reload)
 - `rescrape_all.py` — Progressiewe herskraper, 50 bladsye per speletjie, crash-veilig
 - `analysis-findings.md` — Volledige bevindings
-- `data/processed/reviews_clean.csv` — 65k skoon resensies met genre + VADER
+- `data/processed/reviews_clean.csv` — 160k skoon resensies met genre + VADER

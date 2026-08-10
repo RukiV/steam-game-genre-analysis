@@ -1,4 +1,5 @@
 import re
+import os
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -77,6 +78,17 @@ def process_reviews(csv_path=None):
     print(f"After cleaning: {len(df)} reviews")
 
     out_path = f'{PROCESSED_DIR}/reviews_clean.csv'
+
+    # Bewaar VADER-kolomme van die vorige skoon CSV indien beskikbaar —
+    # VADER is duur om te bereken (~50 min vir 160k), so moenie dit verloor nie.
+    if os.path.exists(out_path):
+        prev_cols = pd.read_csv(out_path, nrows=0).columns
+        vader_cols = [c for c in prev_cols if c.startswith('vader_')]
+        if vader_cols:
+            prev = pd.read_csv(out_path, usecols=['review_id'] + vader_cols)
+            df = df.merge(prev, on='review_id', how='left')
+            print(f"VADER-kolomme bewaar van vorige skoonmaak: {vader_cols}")
+
     df.to_csv(out_path, index=False)
     print(f"Saved clean reviews to {out_path}")
 

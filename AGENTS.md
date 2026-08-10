@@ -35,8 +35,9 @@ rm -f data/raw/reviews.csv data/raw/app_details.csv data/raw/player_counts.csv d
 - `src/` — independent modules (scrape → clean → eda → nlp → regression → network), each exposes its entry functions
 - `dashboard/app.py` — Streamlit with 4 tabs, genre + game filters, Afrikaans UI
 - `notebooks/project.ipynb` — self-contained (scrapes from scratch if data missing)
-- `data/raw/` — `reviews.csv` (~66k rows), `app_details.csv`, `player_counts.csv` (33 games)
-- `data/processed/reviews_clean.csv` — 65k cleaned reviews + 9 genre one-hot columns + 5 VADER columns
+- `notebooks/Fase2_Projek.ipynb` — Fase 2 deliverable (aktiewe skraap, skoonmaak, einddatastel-struktuur; Fase 3 slegs beplan)
+- `data/raw/` — `reviews.csv` (~162k rows), `app_details.csv`, `player_counts.csv` (33 games)
+- `data/processed/reviews_clean.csv` — ~160k cleaned reviews + 9 genre one-hot columns + 5 VADER columns
 
 ## Key facts
 
@@ -46,7 +47,7 @@ rm -f data/raw/reviews.csv data/raw/app_details.csv data/raw/player_counts.csv d
 - **Scraper** uses `purchase_type=all`, `day_range=9999`, 0.3s delay, dedup via seen_ids, stops after 3 empty pages. `max_pages=50` for rescrape (was 100).
 - **Network graphs** (`src/network.py`): genre_relationship_network (gedeelde speletjies), genre_commentary_network (TF-IDF-sentroïede, cosinus-ooreenkoms), genre_word_network (ko-voorkoms van woorde). Albei teks-netwerke filter na Engelse resensies.
 - **All paths** use constants from `src.utils`: PROJECT_DIR, RAW_DIR, PROCESSED_DIR, GAMES, GAME_IDS, GENRES, GENRE_IDS
-- **Data span**: ~65k clean reviews across all 33 games (~2k each), July 2025 – July 2026
+- **Data span**: ~160k clean reviews across all 33 games (~4.8k each), Sep 2016 – July 2026
 - **Skills** installed at `~/.config/opencode/skills/` (global, not project-local)
 - **Notebook self-contained**: Phase 2 cells check for existing data and scrape if missing. Delete `data/raw/*.csv` and `data/processed/*.csv` to force fresh scrape.
 

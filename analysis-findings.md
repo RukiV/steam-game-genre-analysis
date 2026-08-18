@@ -2,11 +2,11 @@
 
 ## 1. Data Scraping & Cleaning
 
-**Scraping (`src/scrape.py`):** Fetches from the Steam API: app details, up to ~2000 reviews per game, and live player counts. 33 games, ~66,000 reviews total, saved as raw CSVs. Content events scraped from ISteamNews API (836 events across 33 games: keyword-filtered for patches, updates, DLC, expansions). SteamCharts provides 705 rows of historical monthly player data.
+**Scraping (`src/scrape.py`):** Fetches from the Steam API: app details, up to ~5000 English reviews per game, and live player counts. 33 games, ~80,000 English reviews total, saved as raw CSVs.
 
 **Cleaning (`src/clean.py`):** Strips URLs, removes non-alpha characters, deduplicates by `review_id`, filters reviews <10 characters, clips extreme playtime outliers (99th percentile), and engineers `review_date`, `word_count`, `review_length`, `has_early_access`, `is_steam_purchase`. Adds 9 genre one-hot columns (`genre_RPG`, `genre_Shooter`, etc.) via `GAME_GENRES` mapping.
 
-**Data scale:** ~65k clean reviews after losing ~1k rows to cleaning. Average review ~97 words. Playtime has extreme skew (mean 24,793h vs median 11,377h). 29+ languages present.
+**Data scale:** ~80k clean English reviews after cleaning. Average review ~97 words. Playtime has extreme skew.
 
 ## 2. EDA — Per-Game Statistics
 
@@ -15,7 +15,7 @@ All 33 games split into clear sentiment clusters:
 | Group | Examples | Positive % | Interpretation |
 |-------|----------|-----------|----------------|
 | **Loved** | Elden Ring, Baldur's Gate 3, Cyberpunk 2077, No Man's Sky, Skyrim SE, The Witcher 3 | 89–96% | Critically acclaimed or successful redemption arcs |
-| **Good** | Civilization VI, Devil May Cry 5, The Forest, Ghost of Tsushima, God of War, Red Dead Redemption 2, Team Fortress 2, Paladins, Valheim | 70–93% | Strong titles in their niches |
+| **Good** | Civilization VI, Devil May Cry 5, The Forest, Ghost of Tsushima, God of War, Red Dead Redemption 2, Team Fortress 2, Valheim | 70–93% | Strong titles in their niches |
 | **Mixed** | CS2, PUBG, Rainbow Six Siege, Age of Empires IV, Dragon's Dogma 2 | 47–70% | Long-running live-service or polarising sequels |
 | **Disliked** | Overwatch 2, Marvel Rivals, Call of Duty HQ, Helldivers 2, Apex Legends, Destiny 2, Battlefield 2042, Fallout 4, Stellaris, Total War: WARHAMMER III, ARK | 17–44% | Free-to-play backlash or monetisation issues |
 

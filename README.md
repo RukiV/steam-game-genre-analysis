@@ -2,11 +2,11 @@
 
 Data-analise projek vanuit 'n speletjie-ontwikkelaar se perspektief: **Watter genre werk?** — As jy in 'n genre wil instap, watter genre is die gewildste, watse kenmerke dryf sukses, en hoe lyk die kommentaar (resensies) binne elke genre?
 
-Analiseer 33 speletjies oor **9 genres** (RPG, Shooter, Hero Shooter, Battle Royale, Action, Strategy, Adventure, Survival, Free to Play) met ~160 000 skoon resensies (Sep 2016 – Jul 2026). Genre-vlak fokus met **netwerkgrafieke** wat wys hoe genres verwant is en watter tipe kommentaar hulle gemeenskappe lewer.
+Analiseer 33 speletjies oor **9 genres** (RPG, Shooter, Hero Shooter, Battle Royale, Action, Strategy, Adventure, Survival, Free to Play) met ~80 000 skoon Engelse resensies (Sep 2016 – Jul 2026). Genre-vlak fokus met **netwerkgrafieke** wat wys hoe genres verwant is en watter tipe kommentaar hulle gemeenskappe lewer.
 
-> **🚧 In oorgang:** Die projek word tans verklein — **tydreeks-analises word verwyder** (SteamDB, SteamCharts, inhoudgebeure, seisoenale patrone, verlossingsboë). Die kode-herstrukturering volg; hierdie README beskryf die teikenstruktuur.
+> **🌍 Engels-only:** Resensies word slegs in Engels geskrap (`language='english'`). VADER en TF-IDF werk slegs op Engels; nie-Engelse resensies sou in Fase 4 ge-filter moes word.
 
-> **📦 Data-beleid (GitHub):** Gegenereerde CSVs word **nie** gecommit nie (`data/raw/reviews.csv` ~104 MB en `data/processed/reviews_clean.csv` ~198 MB is te groot vir GitHub). Die notebook is self-contained — dit skraap en herskep alles van nuut af. Sien **Gebruik** hieronder. Klein brondata (`app_details.csv`, `player_counts.csv`) word wel gecommit.
+> **📦 Data-beleid (GitHub):** Gegenereerde CSVs word **nie** gecommit nie (`data/raw/reviews.csv` en `data/processed/reviews_clean.csv` is te groot vir GitHub). Die notebook is self-contained — dit skraap en herskep alles van nuut af. Sien **Gebruik** hieronder. Klein brondata (`app_details.csv`, `player_counts.csv`) word wel gecommit.
 
 ## Projekstruktuur
 
@@ -199,7 +199,6 @@ Die pyplyn pas verskeie skoonmaak- en voorverwerkingstegnieke toe op die resensi
 | Team Fortress 2 | Shooter, Free to Play | 90.4% |
 | Devil May Cry 5 | Action | 84.3% |
 | Sid Meier's Civilization VI | Strategy | 83.7% |
-| Paladins | Hero Shooter, Free to Play | 80.1% |
 | Valheim | Survival | 70.5% |
 | Rust | Survival, Action | 76.7% |
 | Age of Empires IV | Strategy | 69.8% |
@@ -218,7 +217,10 @@ Die pyplyn pas verskeie skoonmaak- en voorverwerkingstegnieke toe op die resensi
 | Fallout 4 | RPG | 27.7% |
 | Helldivers 2 | Shooter | 25.3% |
 | Call of Duty HQ | Shooter, Free to Play | 17.0% |
-| Fall Guys | Battle Royale, Free to Play | 74.2% |
+| Battlefield 6 | Shooter, Battle Royale | — |
+| Palworld | Survival | — |
+
+> **Nota:** Battlefield 6 en Palworld is nuwe bygevoeg (vervang Paladins en Fall Guys). Persentasies word bygewerk nadat die data hergeskraap is.
 
 ## Tegnologieë
 

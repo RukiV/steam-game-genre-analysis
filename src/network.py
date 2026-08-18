@@ -18,7 +18,7 @@ def genre_relationship_network():
     """Nodus = genre, kantlyn = aantal gedeelde speletjies tussen twee genres.
 
     Wys watter genres 'n familie vorm (bv. Shooter–Hero_Shooter deel
-    Overwatch 2, TF2 en Paladins).
+    Overwatch 2, TF2 en Marvel Rivals).
     """
     G = nx.Graph()
     for genre in GENRE_IDS:

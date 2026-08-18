@@ -74,6 +74,12 @@ def process_reviews(csv_path=None):
         raise ValueError("No review data found. Run scrape.py first.")
 
     print(f"Loaded {len(df)} raw reviews")
+
+    # Na professor se terugvoer: filter na Engels-only
+    # (VADER en TF-IDF werk slegs op Engels)
+    df = df[df['language'] == 'english'].copy()
+    print(f"Filtered to English: {len(df)} reviews")
+
     df = clean_reviews(df)
     print(f"After cleaning: {len(df)} reviews")
 

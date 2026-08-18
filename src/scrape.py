@@ -37,7 +37,7 @@ def scrape_reviews(app_id, max_pages=50, reviews_per_page=100):
     for page in range(max_pages):
         params = {
             'json': 1,
-            'language': 'all',
+            'language': 'english',
             'num_per_page': reviews_per_page,
             'purchase_type': 'all',
             'day_range': 9999,

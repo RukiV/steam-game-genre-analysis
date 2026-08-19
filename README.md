@@ -1,6 +1,8 @@
 # Steam Game Genre Analysis
 
-Data-analise projek vanuit 'n speletjie-ontwikkelaar se perspektief: **Watter genre werk?** — As jy in 'n genre wil instap, watter genre is die gewildste, watse kenmerke dryf sukses, en hoe lyk die kommentaar (resensies) binne elke genre?
+**Doelwit:** Speletjie-ontwikkelaars en beleggers help om 'n ingelige besluit te neem oor watter genre om in te belê, gebaseer op werklike Steam-data oor gewildheid, sentiment en suksesfaktore per genre.
+
+**Vraag:** Watter genre werk op Steam? — watter genre is die gewildste, watter kenmerke dryf sukses, en hoe lyk die kommentaar (resensies) binne elke genre?
 
 Analiseer 33 speletjies oor **12 genres** (RPG, Shooter, Hero Shooter, Battle Royale, Action, Strategy, Adventure, Survival, Free to Play, Third Person, First Person, Top Down) met ~80 000 skoon Engelse resensies (Sep 2016 – Jul 2026). Genre-vlak fokus met **netwerkgrafieke** wat wys hoe genres verwant is en watter tipe kommentaar hulle gemeenskappe lewer.
 

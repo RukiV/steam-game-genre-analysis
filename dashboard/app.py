@@ -175,8 +175,8 @@ with tab1:
             st.metric('Speletjies', stats['num_games'],
                       help=f"Aantal unieke speletjies in die huidige filter. Bron: Steam Web API.")
         with col4:
-            st.metric('Tale', stats['num_languages'],
-                      help=f"Aantal verskillende tale waarin resensies geskryf is. Bron: Steam Web API.")
+            st.metric('Gem. Woorde', f"{stats['avg_word_count']:.1f}",
+                      help=f"Gemiddelde aantal woorde per resensie in die huidige filter. Bron: Steam Web API.")
 
         st.markdown('### Per Speletjie Oorsig')
         per_game = per_game_statistics(filtered)
@@ -311,10 +311,10 @@ with tab2:
 
         texts_df = load_review_texts()
         if texts_df is not None:
-            filtered_en = filtered[filtered['language'] == 'english'].copy() if 'language' in filtered.columns else filtered.copy()
+            filtered_en = filtered.copy()
             filtered_en = filtered_en.merge(texts_df, on='review_id', how='left')
         else:
-            filtered_en = filtered[filtered['language'] == 'english'].copy() if 'language' in filtered.columns else filtered.copy()
+            filtered_en = filtered.copy()
         gc.collect()
 
         if 'vader_compound' in filtered_en.columns:

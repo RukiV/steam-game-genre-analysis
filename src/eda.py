@@ -17,7 +17,6 @@ def basic_statistics(df):
         'avg_word_count': round(df['word_count'].mean(), 1),
         'date_range': f"{df['review_date'].min().date()} to {df['review_date'].max().date()}",
         'num_games': df['app_id'].nunique(),
-        'num_languages': df['language'].nunique(),
     }
     return stats_summary
 

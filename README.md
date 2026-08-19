@@ -23,7 +23,7 @@ Analiseer 33 speletjies oor **15 genres** (RPG, Shooter, Hero Shooter, Battle Ro
 │   ├── nlp_analysis.py   # VADER, TF-IDF (per game en per genre), WordCloud
 │   ├── network.py        # Genre-netwerkgrafieke (verwantskap, kommentaar, woorde)
 │   ├── regression.py     # Lineêre & logistiese regressie met genre-kenmerke
-│   └── utils.py          # Konfigurasie: 33 speletjies, 9 genres, GAME_GENRES
+│   └── utils.py          # Konfigurasie: 33 speletjies, 15 genres, GAME_GENRES
 ├── notebooks/
 │   ├── project.ipynb     # Selfstandige notebook (genre-fokus, geen tydreeks)
 │   └── Fase1_Projek.ipynb # Fase 1 projekdokument (inleiding, probleemstelling, metodologie)
@@ -109,7 +109,7 @@ Die pyplyn pas verskeie skoonmaak- en voorverwerkingstegnieke toe op die resensi
 
 **Teks-skoonmaak (`clean_text()`):** URL's verwyder → spesiale karakters (behalwe `. ' ! ? , ; -`) vervang met spasies → spasies ineenstort.
 
-**Kenmerk-ingenieurswese:** `review_length`, `word_count`, `has_early_access`, `is_steam_purchase`, plus 9 one-hot `genre_{GENRE}`-kolomme uit `GAME_GENRES`.
+**Kenmerk-ingenieurswese:** `review_length`, `word_count`, plus 15 one-hot `genre_{GENRE}`-kolomme uit `GAME_GENRES`.
 
 ### NLP (`src/nlp_analysis.py`)
 
@@ -125,22 +125,20 @@ Die pyplyn pas verskeie skoonmaak- en voorverwerkingstegnieke toe op die resensi
 
 ## Kenmerke (kolomme)
 
-### Kern-kenmerke — `data/processed/reviews_clean.csv` (42 kolomme)
+### Kern-kenmerke — `data/processed/reviews_clean.csv` (43 kolomme)
 
 **Genre & identifikasie** — die kern van die "watter genre werk"-vraag:
 
 | Kolom | Beskrywing |
 |---|---|
 | `app_id`, `game_name` | Watter speletjie |
-| `genre_{GENRE}` (×9) | Een-hot genre-etikette: RPG, Shooter, Hero_Shooter, Battle_Royale, Action, Strategy, Adventure, Survival, Free_to_Play |
-| `language` | Taalfilter (Engels vir NLP-analises) |
+| `genre_{GENRE}` (×15) | Een-hot genre-etikette: RPG, Shooter, Hero_Shooter, Battle_Royale, Action, Strategy, Adventure, Survival, Free_to_Play, Third_Person, First_Person, Top_Down, Single_Player, Multiplayer, Indie |
 
 **Speler- & resensiegedrag** — die kenmerke wat sukses dryf:
 
 | Kolom | Beskrywing |
 |---|---|
 | `playtime_forever` | Totale speeltyd (gekap by 99ste persentiel) |
-| `playtime_at_review` | Speeltyd toe die resensie geskryf is |
 | `num_games_owned`, `num_reviews` | Speler-ervaring op Steam |
 | `votes_up`, `votes_funny`, `weighted_vote_score` | Resensie-sigbaarheid/waarde |
 | `steam_purchase`, `received_for_free` | Aankoopkonteks |
@@ -155,11 +153,9 @@ Die pyplyn pas verskeie skoonmaak- en voorverwerkingstegnieke toe op die resensi
 | `review_length`, `word_count` | Resensielengte (log-getransformeer in regressie) |
 | `vader_compound`, `vader_positive`, `vader_neutral`, `vader_negative`, `vader_sentiment_label` | VADER-sentiment (die teiken vir lineêre regressie) |
 
-**Afgeleide vlaggies:** `has_early_access`, `is_steam_purchase`
-
 ### Konteks-kolomme (bewaar, maar nie tydreeks-geanaliseer nie)
 
-`timestamp_created`, `timestamp_updated`, `review_date`, `review_year`, `review_month`, `review_day_of_week` — datums word bewaar vir konteks en datumbereik-oorwegings, maar daar is **geen tydreeks-analises** in hierdie projek nie.
+`timestamp_created`, `review_date`, `review_year`, `review_month`, `review_day_of_week` — datums word bewaar vir konteks, datumbereik-oorwegings en potensiële seisoenale analise, maar daar is **geen tydreeks-analises** in hierdie projek nie.
 
 ### Ondersteunende data
 

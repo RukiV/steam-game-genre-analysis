@@ -37,7 +37,7 @@ rm -f data/raw/reviews.csv data/raw/app_details.csv data/raw/player_counts.csv d
 - `notebooks/project.ipynb` — self-contained (scrapes from scratch if data missing)
 - `notebooks/Fase2_Projek.ipynb` — Fase 2 deliverable (aktiewe skraap, skoonmaak, einddatastel-struktuur; Fase 3 slegs beplan)
 - `data/raw/` — `reviews.csv` (~80k rows, English-only), `app_details.csv`, `player_counts.csv` (33 games)
-- `data/processed/reviews_clean.csv` — ~80k cleaned English reviews + 9 genre one-hot columns + 5 VADER columns
+- `data/processed/reviews_clean.csv` — ~80k cleaned English reviews + 15 genre one-hot columns + 5 VADER columns
 
 ## Key facts
 
@@ -77,7 +77,7 @@ rm -f data/raw/reviews.csv data/raw/app_details.csv data/raw/player_counts.csv d
 
 ## Module return conventions
 
-- `basic_statistics()` → dict: total_reviews, positive_pct, avg_playtime, num_games, num_languages, date_range
+- `basic_statistics()` → dict: total_reviews, positive_pct, avg_playtime, avg_word_count, num_games, date_range
 - `per_game_statistics()` → DataFrame: game, total_reviews, positive, negative, positive_pct, avg_playtime, steam_purchase_pct
 - `per_genre_statistics()` → DataFrame: genre, total_reviews, positive, negative, positive_pct, avg_playtime, avg_word_count, num_games
 - `linear_regression_model()` → dict: r2_score, rmse, feature_importance, intercept, n_train, n_test

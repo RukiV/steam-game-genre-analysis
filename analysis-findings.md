@@ -4,7 +4,7 @@
 
 **Scraping (`src/scrape.py`):** Fetches from the Steam API: app details, up to ~5000 English reviews per game, and live player counts. 33 games, ~80,000 English reviews total, saved as raw CSVs.
 
-**Cleaning (`src/clean.py`):** Strips URLs, removes non-alpha characters, deduplicates by `review_id`, filters reviews <10 characters, clips extreme playtime outliers (99th percentile), and engineers `review_date`, `word_count`, `review_length`, `has_early_access`, `is_steam_purchase`. Adds 9 genre one-hot columns (`genre_RPG`, `genre_Shooter`, etc.) via `GAME_GENRES` mapping.
+**Cleaning (`src/clean.py`):** Strips URLs, removes non-alpha characters, deduplicates by `review_id`, filters reviews <10 characters, clips extreme playtime outliers (99th percentile), and engineers `review_date`, `word_count`, `review_length`. Adds 15 genre one-hot columns (`genre_RPG`, `genre_Shooter`, etc.) via `GAME_GENRES` mapping. Drops the now-constant `language` column (English-only data).
 
 **Data scale:** ~80k clean English reviews after cleaning. Average review ~97 words. Playtime has extreme skew.
 

@@ -32,13 +32,6 @@ def genre_relationship_network():
     return G
 
 
-def _english_filter(df, language):
-    """Filter na 'n taal (bv. 'english') as die `language`-kolom bestaan."""
-    if language and 'language' in df.columns:
-        return df[df['language'] == language]
-    return df
-
-
 def _genre_texts(df, genre, sample_size):
     """Skoon resensietekste vir 'n genre, gesampel tot sample_size (WSL-veilig)."""
     col = f'genre_{genre}'
@@ -59,19 +52,17 @@ def _auto_threshold(sim):
 
 
 def genre_commentary_network(df, max_features=1000, sample_size=3000,
-                             min_df=5, threshold='auto', language='english'):
+                             min_df=5, threshold='auto'):
     """Nodus = genre, kantlyn = cosinus-ooreenkoms tussen genre-vokabulêre.
 
     TF-IDF word op al die genre-tekste saam gepas (globale IDF), dan word elke
     genre se gemiddelde TF-IDF-vektor (sentroid) bereken. Kantlyngewig = cosinus-
     ooreenkoms tussen sentroïede — hoe meer dieselfde woorde twee genres gebruik,
-    hoe sterker die kantlyn. Kantlyne onder `threshold` word weggelaat.
+    hoe sterker die kantlyn.     Kantlyne onder `threshold` word weggelaat.
 
     `threshold='auto'` (verstek) hou net kantlyne bo gemiddeld + 0.5·std —
     nodig omdat alle genre-vokabulêre baie oorvleuel (tipies >0.85).
     """
-    df = _english_filter(df, language)
-
     genre_texts = {}
     genre_counts = {}
     for genre in GENRE_IDS:
@@ -118,16 +109,12 @@ def genre_commentary_network(df, max_features=1000, sample_size=3000,
     return G
 
 
-def genre_word_network(df, genre, top_n=20, sample_size=500, min_cooccur=2,
-                       language='english'):
+def genre_word_network(df, genre, top_n=20, sample_size=500, min_cooccur=2):
     """Nodus = top-woord in 'n genre, kantlyn = resensies waarin beide voorkom.
 
     Toon die 'tipe kommentaar' wat jy in 'n genre se resensies sien: woorde wat
-    gereeld saam gebruik word, vorm clusters. Filter na Engels (verstek) sodat
-    nie-Engelse woorde (bv. 'que', 'jogo') die netwerk nie verpolitie nie.
+    gereeld saam gebruik word, vorm clusters. Data is reeds Engels-only.
     """
-    df = _english_filter(df, language)
-
     col = f'genre_{genre}'
     texts = df[df[col] == 1]['review_text_clean'].dropna()
     if len(texts) > sample_size:

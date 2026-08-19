@@ -30,7 +30,6 @@ def clean_reviews(df):
     df['review_day_of_week'] = df['review_date'].dt.dayofweek
 
     df['playtime_forever'] = pd.to_numeric(df['playtime_forever'], errors='coerce').fillna(0).astype(float)
-    df['playtime_at_review'] = pd.to_numeric(df['playtime_at_review'], errors='coerce').fillna(0).astype(float)
 
     outliers = df['playtime_forever'] > df['playtime_forever'].quantile(0.99)
     df.loc[outliers, 'playtime_forever'] = df['playtime_forever'].quantile(0.99)
@@ -43,8 +42,10 @@ def clean_reviews(df):
 
     df['review_length'] = df['review_text'].str.len()
     df['word_count'] = df['review_text'].str.split().str.len()
-    df['has_early_access'] = df['written_during_early_access'].astype(int)
-    df['is_steam_purchase'] = df['steam_purchase'].astype(int)
+
+    # Alles is nou Engels-only — die language-kolom is nie meer nodig nie
+    if 'language' in df.columns:
+        df = df.drop(columns=['language'])
 
     genres_for_app = df['app_id'].map(GAME_GENRES)
     for genre in GENRE_IDS:

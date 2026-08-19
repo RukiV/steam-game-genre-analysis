@@ -4,7 +4,7 @@
 
 **Vraag:** Watter genre werk op Steam? — watter genre is die gewildste, watter kenmerke dryf sukses, en hoe lyk die kommentaar (resensies) binne elke genre?
 
-Analiseer 33 speletjies oor **12 genres** (RPG, Shooter, Hero Shooter, Battle Royale, Action, Strategy, Adventure, Survival, Free to Play, Third Person, First Person, Top Down) met ~80 000 skoon Engelse resensies (Sep 2016 – Jul 2026). Genre-vlak fokus met **netwerkgrafieke** wat wys hoe genres verwant is en watter tipe kommentaar hulle gemeenskappe lewer.
+Analiseer 33 speletjies oor **15 genres** (RPG, Shooter, Hero Shooter, Battle Royale, Action, Strategy, Adventure, Survival, Free to Play, Third Person, First Person, Top Down, Single Player, Multiplayer, Indie) met ~80 000 skoon Engelse resensies (Sep 2016 – Jul 2026). Genre-vlak fokus met **netwerkgrafieke** wat wys hoe genres verwant is en watter tipe kommentaar hulle gemeenskappe lewer.
 
 > **🌍 Engels-only:** Resensies word slegs in Engels geskrap (`language='english'`). VADER en TF-IDF werk slegs op Engels; nie-Engelse resensies sou in Fase 4 ge-filter moes word.
 

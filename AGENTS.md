@@ -41,7 +41,7 @@ rm -f data/raw/reviews.csv data/raw/app_details.csv data/raw/player_counts.csv d
 
 ## Key facts
 
-- **33 games** in `src/utils.py` GAMES dict, **12 genres** in GENRES dict
+- **33 games** in `src/utils.py` GAMES dict, **15 genres** in GENRES dict
 - **GENRES** maps genre → [app_ids]; **GAME_GENRES** maps app_id → [genre tags]; `games_by_genre(genre)` and `games_in_genres(list)` helpers
 - **VADER columns**: vader_compound, vader_positive, vader_neutral, vader_negative, vader_sentiment_label. Pre-persisted in CSV.
 - **Scraper** uses `language='english'`, `purchase_type=all`, `day_range=9999`, 0.3s delay, dedup via seen_ids, stops after 3 empty pages. `max_pages=50` for rescrape (was 100).

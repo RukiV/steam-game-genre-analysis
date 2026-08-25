@@ -4,7 +4,7 @@
 
 **Vraag:** Watter genre werk op Steam? — watter genre is die gewildste, watter kenmerke dryf sukses, en hoe lyk die kommentaar (resensies) binne elke genre?
 
-Analiseer 33 speletjies oor **15 genres** (RPG, Shooter, Hero Shooter, Battle Royale, Action, Strategy, Adventure, Survival, Free to Play, Third Person, First Person, Top Down, Single Player, Multiplayer, Indie) met ~80 000 skoon Engelse resensies (Sep 2016 – Jul 2026). Genre-vlak fokus met **netwerkgrafieke** wat wys hoe genres verwant is en watter tipe kommentaar hulle gemeenskappe lewer.
+Analiseer 33 speletjies oor **15 genres** (RPG, Shooter, Hero Shooter, Battle Royale, Action, Strategy, Adventure, Survival, Free to Play, Third Person, First Person, Top Down, Single Player, Multiplayer, Indie) met ~160 000 skoon Engelse resensies (Okt 2021 – Aug 2026). Genre-vlak fokus met **netwerkgrafieke** wat wys hoe genres verwant is en watter tipe kommentaar hulle gemeenskappe lewer.
 
 > **🌍 Engels-only:** Resensies word slegs in Engels geskrap (`language='english'`). VADER en TF-IDF werk slegs op Engels; nie-Engelse resensies sou in Fase 4 ge-filter moes word.
 
@@ -184,41 +184,41 @@ Die pyplyn pas verskeie skoonmaak- en voorverwerkingstegnieke toe op die resensi
 
 | Speletjie | Genre(s) | % Positief |
 |-----------|----------|:----------:|
-| Elden Ring | Action, RPG | 94.7% |
-| Baldur's Gate 3 | RPG | 93.6% |
-| The Witcher 3 | RPG, Action | 94.7% |
-| Cyberpunk 2077 | RPG, Action | 95.7% |
-| Red Dead Redemption 2 | Adventure, Action | 89.0% |
-| God of War | Action, Adventure | 92.9% |
-| Ghost of Tsushima | Action, Adventure | 92.7% |
-| The Forest | Survival, Adventure | 92.9% |
-| Skyrim SE | RPG | 94.9% |
-| No Man's Sky | Action, Adventure, Survival | 89.2% |
-| Team Fortress 2 | Shooter, Free to Play | 90.4% |
-| Devil May Cry 5 | Action | 84.3% |
-| Sid Meier's Civilization VI | Strategy | 83.7% |
-| Valheim | Survival | 70.5% |
-| Rust | Survival, Action | 76.7% |
-| Age of Empires IV | Strategy | 69.8% |
-| Dragon's Dogma 2 | RPG, Action | 62.5% |
-| Counter-Strike 2 | Shooter, Free to Play | 56.4% |
-| PUBG: BATTLEGROUNDS | Battle Royale, Free to Play | 49.1% |
-| Rainbow Six Siege | Shooter | 47.1% |
-| ARK: Survival Evolved | Survival, Action | 43.5% |
-| Apex Legends | Battle Royale, Free to Play | 39.1% |
-| Destiny 2 | Shooter, Free to Play | 39.5% |
-| Battlefield 2042 | Shooter | 38.6% |
-| Stellaris | Strategy | 36.9% |
-| Overwatch 2 | Hero Shooter, Free to Play | 35.5% |
-| Total War: WARHAMMER III | Strategy | 30.8% |
-| Marvel Rivals | Hero Shooter, Free to Play | 30.4% |
-| Fallout 4 | RPG | 27.7% |
-| Helldivers 2 | Shooter | 25.3% |
-| Call of Duty HQ | Shooter, Free to Play | 17.0% |
-| Battlefield 6 | Shooter, Battle Royale | — |
-| Palworld | Survival | — |
+| Elden Ring | RPG, Action, Third Person, Single Player | 98.6% |
+| Cyberpunk 2077 | RPG, Action, Single Player | 98.5% |
+| Baldur's Gate 3 | RPG, Strategy, Adventure, Third Person, Top Down, Single Player | 97.8% |
+| Palworld | Survival, Third Person, Indie | 94.7% |
+| Devil May Cry 5 | Action, Third Person, Single Player | 94.4% |
+| Team Fortress 2 | Shooter, Hero Shooter, Action, Free to Play, First Person, Multiplayer | 93.5% |
+| God of War | Action, Adventure, Third Person, Single Player | 93.2% |
+| The Witcher 3 | RPG, Action, Adventure, Third Person, Single Player | 92.6% |
+| The Forest | Action, Adventure, Survival, First Person, Single Player, Indie | 91.6% |
+| Skyrim SE | RPG, Action, Adventure, Third Person, First Person, Single Player | 91.2% |
+| No Man's Sky | Action, Adventure, Survival, Third Person, First Person, Single Player | 90.9% |
+| Valheim | RPG, Action, Adventure, Survival, Third Person, First Person, Single Player, Multiplayer, Indie | 89.6% |
+| Ghost of Tsushima | Action, Adventure, Third Person, Single Player | 88.8% |
+| Red Dead Redemption 2 | Action, Adventure, Third Person, Single Player | 88.4% |
+| Sid Meier's Civilization VI | Strategy, Top Down, Single Player, Multiplayer | 85.9% |
+| Age of Empires IV | Strategy, Top Down, Single Player, Multiplayer | 79.9% |
+| Destiny 2 | Shooter, First Person, Multiplayer | 68.2% |
+| Rust | Action, Survival, Multiplayer, Indie | 67.4% |
+| ARK: Survival Evolved | Action, Adventure, Survival, Third Person, First Person, Multiplayer, Indie | 66.9% |
+| Stellaris | Strategy, Top Down | 65.9% |
+| Dragon's Dogma 2 | RPG, Action, Third Person, Single Player | 64.8% |
+| PUBG: BATTLEGROUNDS | Shooter, Battle Royale, Free to Play, Third Person, First Person, Multiplayer | 58.2% |
+| Rainbow Six Siege | Shooter, Strategy, First Person, Multiplayer | 55.8% |
+| Apex Legends | Shooter, Battle Royale, Free to Play, First Person, Multiplayer | 55.6% |
+| Counter-Strike 2 | Shooter, Free to Play, First Person, Multiplayer | 50.7% |
+| Overwatch 2 | Shooter, Hero Shooter, Free to Play, First Person, Multiplayer | 45.6% |
+| Total War: WARHAMMER III | Strategy, Third Person, Top Down, Multiplayer | 44.4% |
+| Fallout 4 | RPG, Action, Adventure, Third Person, First Person, Single Player | 43.8% |
+| Battlefield 2042 | Shooter, First Person, Multiplayer | 42.0% |
+| Marvel Rivals | Hero Shooter, Free to Play, Third Person, Multiplayer | 36.0% |
+| Battlefield 6 | Shooter, First Person, Single Player, Multiplayer | 22.1% |
+| Call of Duty HQ | Shooter, Battle Royale, First Person, Single Player, Multiplayer | 21.2% |
+| Helldivers 2 | Shooter, Action, Third Person, Multiplayer | 10.3% |
 
-> **Nota:** Battlefield 6 en Palworld is nuwe bygevoeg (vervang Paladins en Fall Guys). Persentasies word bygewerk nadat die data hergeskraap is.
+> **Nota:** Persentasies gebaseer op ~161k skoon Engelse resensies (Okt 2021 – Aug 2026).
 
 ## Tegnologieë
 
@@ -243,8 +243,8 @@ Die dashboard is geoptimaliseer vir WSL2:
 
 ## Sleutelbevindings
 
-1. **Genre bepaal basislyn.** RPG begin teen ~79% positief; Hero Shooter teen ~34%.
-2. **Speeltyd = kritiek.** Mees belêde spelers gee die hardste kritiek (p ≈ 10⁻⁶⁰).
+1. **Genre bepaal basislyn.** RPG begin teen ~85% positief; Battle Royale teen ~45%.
+2. **Speeltyd = kritiek.** Mees belêde spelers gee die hardste kritiek (p ≈ 5 × 10⁻¹⁹³).
 3. **Woordkeuse verskil per genre.** Elke genre se gemeenskap het unieke bekommernisse — sigbaar in die genre-netwerke.
 
 Sien `analysis-findings.md` vir volledige uiteensetting.
